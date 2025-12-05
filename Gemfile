@@ -7,7 +7,7 @@ group :test do
   gem "fakefs"
   gem "minitest"
   gem "mocha"
-  gem "test-kitchen", git: "https://github.com/test-kitchen/test-kitchen", branch: "remove-chef-provisioner" # TODO: remove git reference once merged
+  gem "test-kitchen", git: "https://github.com/test-kitchen/test-kitchen", branch: "remove-chef-provisioner" # TODO: remove once https://github.com/test-kitchen/test-kitchen/pull/2041 is merged
 end
 
 group :integration do
