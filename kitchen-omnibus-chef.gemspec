@@ -1,11 +1,11 @@
 lib = File.expand_path("lib", __dir__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require "kitchen/version"
+require "kitchen/provisioner/omnibus_chef_version"
 require "English"
 
 Gem::Specification.new do |gem|
   gem.name          = "kitchen-omnibus-chef"
-  gem.version       = Kitchen::VERSION
+  gem.version       = Kitchen::Provisioner::OMNIBUS_CHEF_VERSION
   gem.license       = "Apache-2.0"
   gem.authors       = ["Fletcher Nichol"]
   gem.email         = ["fnichol@nichol.ca"]
