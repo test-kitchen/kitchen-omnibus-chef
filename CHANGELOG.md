@@ -1,5 +1,12 @@
 # Kitchen-omnibus-chef Change Log
 
+## [1.0.2](https://github.com/test-kitchen/kitchen-omnibus-chef/compare/v1.0.1...v1.0.2) (2026-01-19)
+
+
+### Bug Fixes
+
+* fix release please config for gem version file ([#8](https://github.com/test-kitchen/kitchen-omnibus-chef/issues/8)) ([7c423cb](https://github.com/test-kitchen/kitchen-omnibus-chef/commit/7c423cb1e2aacb68583e4146ff07df4dcd70bfd5))
+
 ## [1.0.1](https://github.com/test-kitchen/kitchen-omnibus-chef/compare/v1.0.0...v1.0.1) (2026-01-19)
 
 
