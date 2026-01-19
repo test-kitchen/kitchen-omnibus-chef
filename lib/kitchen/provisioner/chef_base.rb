@@ -285,6 +285,24 @@ module Kitchen
 
       # (see Base#check_license)
       def check_license
+        unless config[:download_url]
+          warn(
+            <<~WARNING
+              =====================================================================================================
+              \e[1m\e[93m!!!WARNING!!! Omnitruck downloads are being shutdown for specific Chef Infra Client versions
+              and will stop working entirely in the future. It is recommended to switch to using the new
+              kitchen-chef-enterprise plugin found with chef-test-kitchen-enterprise and bundled in chef-workstation 26.x+.
+
+              Please refer to this blog for schedule of which chef-client versions and when they will be affected:
+              https://www.chef.io/blog/decoding-the-change-progress-chef-is-moving-to-licensed-downloads
+
+              For non chef customers or community users it is recommended to switch to the kitchen-cinc plugin and cinc
+              provisioners like cinc_infra.\e[0m
+              =====================================================================================================
+            WARNING
+          )
+        end
+
         name = license_acceptance_id
         version = product_version
         debug("Checking if we need to prompt for license acceptance on product: #{name} version: #{version}.")
