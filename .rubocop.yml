@@ -1,0 +1,11 @@
+---
+require:
+  - cookstyle/chefstyle
+
+AllCops:
+  TargetRubyVersion: 3.4
+  Include:
+    - "**/*.rb"
+  Exclude:
+    - "vendor/**/*"
+    - "spec/**/*"
