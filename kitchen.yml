@@ -15,6 +15,11 @@ verifier:
 platforms:
   - name: almalinux-9
   - name: ubuntu-24.04
+  - name: windows-11
+    driver:
+      box: stromweld/windows-11
+      customize:
+        memory: 4096
   - name: windows-2025
     driver:
       box: stromweld/windows-2025
