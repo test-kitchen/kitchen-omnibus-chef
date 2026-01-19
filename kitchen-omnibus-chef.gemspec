@@ -15,7 +15,6 @@ Gem::Specification.new do |gem|
 
   # The gemfile and gemspec are necessary for appbundler in ChefDK / Workstation
   gem.files         = %w{LICENSE kitchen-omnibus-chef.gemspec Gemfile Rakefile} + Dir.glob("{lib,support}/**/*")
-  gem.executables   = %w{kitchen}
   gem.require_paths = ["lib"]
 
   gem.required_ruby_version = ">= 3.1"
