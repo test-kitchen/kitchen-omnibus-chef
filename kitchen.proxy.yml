@@ -13,3 +13,9 @@ platforms:
     transport:
       name: winrm
       elevated: true
+  - name: local-licensing
+    provisioner:
+      chef_license_key: free-79df705d-b685-419a-8b68-88401f74ff72-3999
+  - name: windows-licensing-winrm
+    provisioner:
+      chef_license_key: free-79df705d-b685-419a-8b68-88401f74ff72-3999

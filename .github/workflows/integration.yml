@@ -79,8 +79,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ruby: ["3.4"]
-        kitchen_yaml: ["exec", "proxy"]
+        ruby:
+          - 3.4
+        kitchen_yaml:
+          - exec
+          - proxy
+        platform:
+          - localhost
+          - localhost-licensing
     steps:
       - uses: actions/checkout@v6
       - uses: ruby/setup-ruby@v1
@@ -99,7 +105,7 @@ jobs:
           sudo createhomedir -c -u ${{ env.machine_user }}
           echo "${{ env.machine_user }} ALL=(ALL) NOPASSWD:ALL" | sudo tee -a /etc/sudoers
       - name: Verify macOS
-        run: bundle exec kitchen verify localhost
+        run: bundle exec kitchen verify ${{ matrix.platform }}
 
   windows:
     env:
@@ -110,8 +116,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ruby: ["3.4"]
-        kitchen_yaml: ["exec", "proxy"]
+        ruby:
+          - 3.4
+        kitchen_yaml:
+          - exec
+          - proxy
+        platform:
+          - windows-winrm
+          - windows-licensing-winrm
     steps:
       - uses: actions/checkout@v6
       - uses: ruby/setup-ruby@v1
@@ -124,7 +136,7 @@ jobs:
           net user /add ${{ env.machine_user }} ${{ env.machine_pass }}
           net localgroup administrators ${{ env.machine_user }} /add
       - name: Verify Windows
-        run: bundle exec kitchen verify windows-winrm
+        run: bundle exec kitchen verify ${{ matrix.platform }}
 
   linux:
     env:
@@ -135,8 +147,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ruby: ["3.4"]
-        kitchen_yaml: ["exec", "proxy"]
+        ruby:
+          - 3.4
+        kitchen_yaml:
+          - exec
+          - proxy
+        platform:
+          - localhost
+          - local-licensing
     steps:
       - uses: actions/checkout@v6
       - uses: ruby/setup-ruby@v1
@@ -150,7 +168,7 @@ jobs:
           echo "${{ env.machine_user }} ALL=(ALL) NOPASSWD:ALL" | sudo tee -a /etc/sudoers
       - name: Verify Linux
         run: |
-          bundle exec kitchen verify localhost
+          bundle exec kitchen verify ${{ matrix.platform }}
 
   windows-fips-ssh:
     env:
@@ -161,8 +179,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ruby: ["3.4"]
-        kitchen_yaml: ["exec", "proxy"]
+        ruby:
+          - 3.4
+        kitchen_yaml:
+          - exec
+          - proxy
+        platform:
+          - windows-fips-ssh
     steps:
       - uses: actions/checkout@v6
       - uses: ruby/setup-ruby@v1
@@ -209,4 +232,4 @@ jobs:
           net user /add ${{ env.machine_user }} ${{ env.machine_pass }}
           net localgroup administrators ${{ env.machine_user }} /add
       - name: Verify Windows FIPS SSH
-        run: bundle exec kitchen verify windows-fips-ssh -l debug
+        run: bundle exec kitchen verify ${{ matrix.platform }}

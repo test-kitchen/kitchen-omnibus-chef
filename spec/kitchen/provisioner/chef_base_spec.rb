@@ -167,6 +167,10 @@ describe Kitchen::Provisioner::ChefBase do
       _(provisioner[:checksum]).must_be_nil
     end
 
+    it ":license_key default to nil" do
+      _(provisioner[:license_key]).must_be_nil
+    end
+
     it ":retry_on_exit_code defaults to standard values" do
       _(provisioner[:retry_on_exit_code]).must_equal [35, 213]
     end
@@ -478,6 +482,15 @@ describe Kitchen::Provisioner::ChefBase do
         Mixlib::Install.expects(:new).with do |opts|
           _(opts[:install_command_options][:download_url_override]).must_equal "http://url/path"
           _(opts[:install_command_options][:checksum]).must_equal "abcd"
+        end.returns(installer)
+        cmd
+      end
+
+      it "will set the license_key if given" do
+        config[:license_key] = "test-license-key-12345"
+
+        Mixlib::Install.expects(:new).with do |opts|
+          _(opts[:install_command_options][:license_id]).must_equal "test-license-key-12345"
         end.returns(installer)
         cmd
       end

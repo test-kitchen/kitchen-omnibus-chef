@@ -20,7 +20,7 @@ Gem::Specification.new do |gem|
   gem.required_ruby_version = ">= 3.1"
 
   gem.add_dependency "test-kitchen",       ">= 4.0"
-  gem.add_dependency "mixlib-install",     "~> 3.6"
+  gem.add_dependency "mixlib-install",     ">= 3.14"
   gem.add_dependency "mixlib-shellout",    ">= 1.2", "< 4.0"
   # Required to run the Chef provisioner local license check for remote systems
   # TK is not under Chef EULA

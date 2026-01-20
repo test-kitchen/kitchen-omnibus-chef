@@ -142,6 +142,10 @@ module Kitchen
 
       default_config :checksum
 
+      default_config :license_key do |provisioner|
+        ENV["CHEF_LICENSE_KEY"]
+      end
+
       deprecate_config_for :require_chef_omnibus do |provisioner|
         case
         when provisioner[:require_chef_omnibus] == false
@@ -547,6 +551,10 @@ module Kitchen
           if config[:download_url]
             opts[:install_command_options][:download_url_override] = config[:download_url]
             opts[:install_command_options][:checksum] = config[:checksum] if config[:checksum]
+          end
+
+          if config[:license_key]
+            opts[:install_command_options][:license_id] = config[:license_key]
           end
 
           if instance.driver.cache_directory
