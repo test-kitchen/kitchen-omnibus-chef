@@ -292,20 +292,21 @@ module Kitchen
         unless config[:download_url]
           warn(
             <<~WARNING
-              =====================================================================================================
-              \e[1m\e[93m!!!WARNING!!!\e[0m Omnitruck downloads are being shutdown for specific Chef Infra Client versions
-              and will stop working entirely in the future. This kitchen-omnibus-chef gem is also not compatible with
-              infra-client 19+ new habitat based installation method.
+              ==============================================================================================================
+              \e[1m\e[93m!!!WARNING!!! kitchen-omnibus-chef is deprecated\e[0m
+              Omnitruck downloads are being shutdown for specific Chef Infra Client versions and will stop working entirely
+              in the future. This kitchen-omnibus-chef gem is also not compatible with infra-client 19+ new habitat
+              based installation method.
 
-              It is recommended to switch to using the new
-              kitchen-chef-enterprise plugin found with chef-test-kitchen-enterprise and bundled in chef-workstation 26.x+.
+              For Chef customers it is recommended to switch to using the new kitchen-chef-enterprise plugin found with
+              chef-test-kitchen-enterprise and bundled in chef-workstation 26.x+.
 
               Please refer to this blog for schedule of which chef-client versions and when they will be affected:
               https://www.chef.io/blog/decoding-the-change-progress-chef-is-moving-to-licensed-downloads
 
-              For non chef customers or community users it is recommended to switch to the new kitchen-cinc plugin and cinc
+              For non Chef customers or community users it is recommended to switch to the new kitchen-cinc plugin and cinc
               provisioners like cinc_infra.
-              =====================================================================================================
+              ==============================================================================================================
             WARNING
           )
         end
