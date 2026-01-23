@@ -10,6 +10,7 @@ kitchen-omnibus-chef is a Test Kitchen plugin that provides Chef provisioners fo
 - Integration with Policyfiles and Berkshelf for cookbook dependency resolution
 - Supports licensed Chef product downloads with license key configuration
 - Built on Mixlib::Install for Chef package installation
+- **Enterprise gem delegation** - Automatically defers to kitchen-chef-enterprise or kitchen-cinc when installed
 
 ## Architecture
 
@@ -20,6 +21,56 @@ kitchen-omnibus-chef is a Test Kitchen plugin that provides Chef provisioners fo
 - `ChefSolo` - Traditional chef-solo provisioner (not thread-safe due to Berkshelf)
 - `ChefApply` - Runs recipes using chef-apply
 - `ChefTarget` - Target mode provisioner for remote execution (requires Chef 19.0.0+)
+
+### Enterprise Gem Delegation System
+
+kitchen-omnibus-chef implements a **wrapper/proxy pattern** to automatically detect and delegate to enterprise implementations:
+
+#### Detection Mechanism
+Located in `ChefBase.enterprise_gem_available?`:
+1. Checks for `kitchen-chef-enterprise` gem first (Progress Chef Enterprise)
+2. Falls back to `kitchen-cinc` gem (Cinc Project)
+3. Returns `nil` if neither is found
+
+#### Delegation Pattern
+Each provisioner class (`ChefInfra`, `ChefSolo`, `ChefApply`, `ChefTarget`, `ChefZero`) implements:
+- **Factory method pattern** via overridden `self.new`
+- **Runtime detection** of enterprise gems
+- **Automatic delegation** to enterprise implementation if found
+- **Fallback** to kitchen-omnibus-chef implementation
+- **Logging** to indicate which implementation is used
+
+#### Priority Order
+1. **kitchen-chef-enterprise** (highest priority)
+2. **kitchen-cinc** (secondary priority)
+3. **kitchen-omnibus-chef** (fallback)
+
+#### Implementation Details
+```ruby
+# Each provisioner checks on instantiation
+def self.new(config = {})
+  enterprise_gem = ChefBase.enterprise_gem_available?
+  
+  if enterprise_gem
+    begin
+      # Load enterprise gem's version
+      require "#{enterprise_gem}/provisioner/chef_infra"
+      enterprise_class = Kitchen::Provisioner.const_get(:ChefInfra)
+      
+      # Return enterprise instance if different from ours
+      if enterprise_class != self
+        logger.info("Using #{enterprise_gem} implementation")
+        return enterprise_class.allocate.tap { |i| i.send(:initialize, config) }
+      end
+    rescue LoadError, NameError => e
+      # Fall through to our implementation
+    end
+  end
+  
+  # Standard implementation
+  allocate.tap { |i| i.send(:initialize, config) }
+end
+```
 
 ### Key Module Structure
 - `/lib/kitchen/provisioner/` - Main provisioner implementations
@@ -157,6 +208,38 @@ end
 
 ## Common Patterns
 
+### Enterprise Gem Detection and Delegation
+When adding new provisioners or modifying existing ones:
+1. **Always implement the factory pattern** via `self.new` override
+2. **Check for enterprise gems** using `ChefBase.enterprise_gem_available?`
+3. **Attempt to load enterprise implementation** with proper error handling
+4. **Log which implementation is used** for transparency
+5. **Fall back gracefully** to local implementation
+
+Example pattern:
+```ruby
+def self.new(config = {})
+  enterprise_gem = ChefBase.enterprise_gem_available?
+  
+  if enterprise_gem
+    begin
+      omnibus_chef_class = self
+      require "#{enterprise_gem}/provisioner/#{provisioner_name}"
+      enterprise_class = Kitchen::Provisioner.const_get(:ProvisionerClass)
+      
+      if enterprise_class != omnibus_chef_class
+        # Log and return enterprise implementation
+        return enterprise_class.allocate.tap { |i| i.send(:initialize, config) }
+      end
+    rescue LoadError, NameError
+      # Fall through to our implementation
+    end
+  end
+  
+  allocate.tap { |i| i.send(:initialize, config) }
+end
+```
+
 ### Detecting Policyfile vs Berkshelf
 The provisioner auto-detects cookbook management:
 1. Checks for `Policyfile.rb` (uses Policyfile if found)
@@ -175,6 +258,23 @@ Configuration flows from kitchen-omnibus-chef to Mixlib::Install:
 - `channel` → `:channel`
 - `chef_license_key` → `:install_command_options[:license_id]`
 - Proxy settings → `:install_command_options` (http_proxy, https_proxy, etc.)
+
+## Enterprise Gem Compatibility
+
+### Design Principles
+1. **Non-invasive** - No changes required to Test Kitchen core
+2. **Backward compatible** - Works with or without enterprise gems
+3. **Transparent** - Logs indicate which implementation is active
+4. **Automatic** - No user configuration needed
+5. **Fallback-safe** - Always works even if enterprise gems fail to load
+
+### Testing Enterprise Delegation
+When testing the delegation system:
+1. Mock `Gem::Specification.find_by_name` to simulate gem presence
+2. Test both enterprise gem available and unavailable scenarios
+3. Verify logging output indicates correct implementation
+4. Ensure fallback works when enterprise gem load fails
+5. Test all provisioner types (ChefInfra, ChefSolo, ChefApply, ChefTarget, ChefZero)
 
 ## Deprecation Handling
 

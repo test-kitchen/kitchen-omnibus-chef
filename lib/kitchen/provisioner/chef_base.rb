@@ -231,6 +231,33 @@ module Kitchen
         fully managed by using attribute settings.
       MSG
 
+      # Check if enterprise or cinc gems are available that provide
+      # higher-priority implementations of Chef provisioners
+      #
+      # @return [String, nil] the name of the enterprise gem if available
+      # @api private
+      def self.enterprise_gem_available?
+        @enterprise_gem_checked ||= false
+        return @enterprise_gem if @enterprise_gem_checked
+
+        @enterprise_gem_checked = true
+        @enterprise_gem = begin
+          # Try kitchen-chef-enterprise first (Progress Chef Enterprise)
+          if Gem::Specification.find_by_name("kitchen-chef-enterprise")
+            "kitchen-chef-enterprise"
+          end
+        rescue Gem::LoadError
+          begin
+            # Fall back to kitchen-cinc (Cinc Project)
+            if Gem::Specification.find_by_name("kitchen-cinc")
+              "kitchen-cinc"
+            end
+          rescue Gem::LoadError
+            nil
+          end
+        end
+      end
+
       # Reads the local Chef::Config object (if present). We do this because
       # we want to start bring Chef config and Chef Workstation config closer
       # together. For example, we want to configure proxy settings in 1

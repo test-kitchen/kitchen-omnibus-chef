@@ -13,6 +13,15 @@ Gem::Specification.new do |gem|
   gem.summary       = gem.description
   gem.homepage      = "https://kitchen.ci/"
 
+  # Metadata for enterprise gem integration
+  gem.metadata = {
+    "homepage_uri" => "https://kitchen.ci/",
+    "source_code_uri" => "https://github.com/test-kitchen/kitchen-omnibus-chef",
+    "changelog_uri" => "https://github.com/test-kitchen/kitchen-omnibus-chef/blob/main/CHANGELOG.md",
+    "bug_tracker_uri" => "https://github.com/test-kitchen/kitchen-omnibus-chef/issues",
+    "documentation_uri" => "https://kitchen.ci/docs/",
+  }
+
   # The gemfile and gemspec are necessary for appbundler in ChefDK / Workstation
   gem.files         = %w{LICENSE kitchen-omnibus-chef.gemspec Gemfile Rakefile} + Dir.glob("{lib,support}/**/*")
   gem.require_paths = ["lib"]

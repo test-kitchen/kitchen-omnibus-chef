@@ -1,5 +1,7 @@
 # kitchen-omnibus-chef
 
+!!! DEPRECATED !!! Please use kitchen-chef-enterprise or kitchen-cinc gems instead.
+
 A Test Kitchen provisioner for Chef Infra Client that downloads and installs omnibus packages.
 
 ## Overview
@@ -182,6 +184,46 @@ provisioner:
   name: chef_infra
   install_strategy: always
 ```
+
+## Enterprise Gem Integration
+
+kitchen-omnibus-chef automatically detects and defers to enterprise provisioner implementations when available. If you have `kitchen-chef-enterprise` or `kitchen-cinc` installed, kitchen-omnibus-chef will use their implementations instead, providing:
+
+- Enhanced features for enterprise Chef environments
+- Licensed Chef product support
+- Seamless upgrade path without configuration changes
+
+### Priority Order
+
+When loading provisioners, kitchen-omnibus-chef checks for enterprise gems in this order:
+
+1. **kitchen-chef-enterprise** (Progress Chef Enterprise)
+2. **kitchen-cinc** (Cinc Project)
+3. **kitchen-omnibus-chef** (fallback, this gem)
+
+### Installation
+
+To use enterprise features, install the enterprise gem alongside kitchen-omnibus-chef:
+
+```shell
+# For Progress Chef Enterprise
+gem install kitchen-chef-enterprise
+
+# For Cinc Project
+gem install kitchen-cinc
+```
+
+Or in your Gemfile:
+
+```ruby
+# Enterprise gem (higher priority)
+gem 'kitchen-chef-enterprise'
+
+# Standard gem (fallback)
+gem 'kitchen-omnibus-chef'
+```
+
+No configuration changes are needed - Test Kitchen will automatically use the enterprise implementation when available.
 
 ## Running Tests
 
