@@ -35,24 +35,24 @@ module Kitchen
       # @return [ChefInfra] provisioner instance
       def self.new(config = {})
         enterprise_gem = ChefBase.enterprise_gem_available?
-        
+
         if enterprise_gem
           begin
             # Store reference to our class before requiring enterprise gem
             omnibus_chef_class = self
-            
+
             # Require the enterprise gem's provisioner
             require "#{enterprise_gem}/provisioner/chef_infra"
-            
+
             # Check if a different class was loaded
             enterprise_class = Kitchen::Provisioner.const_get(:ChefInfra)
-            
+
             if enterprise_class != omnibus_chef_class
               # Log that we're delegating to enterprise implementation
               if config[:instance] && config[:instance].respond_to?(:logger)
                 config[:instance].logger.info("Using #{enterprise_gem} implementation of ChefInfra provisioner")
               end
-              
+
               # Return enterprise implementation
               return enterprise_class.allocate.tap do |instance|
                 instance.send(:initialize, config)
@@ -65,7 +65,7 @@ module Kitchen
             end
           end
         end
-        
+
         # Use standard omnibus-chef implementation
         allocate.tap do |instance|
           instance.send(:initialize, config)

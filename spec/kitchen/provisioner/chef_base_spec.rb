@@ -176,6 +176,51 @@ describe Kitchen::Provisioner::ChefBase do
     end
   end
 
+  describe ".enterprise_gem_available?" do
+    before do
+      # Reset cached state before each test
+      Kitchen::Provisioner::ChefBase.instance_variable_set(:@enterprise_gem_checked, false)
+      Kitchen::Provisioner::ChefBase.instance_variable_set(:@enterprise_gem, nil)
+    end
+
+    it "returns 'kitchen-chef-enterprise' when that gem is available" do
+      mock_spec = stub
+      Gem::Specification.singleton_class.any_instance.stubs(:find_by_name).with("kitchen-chef-enterprise").returns(mock_spec)
+
+      _(Kitchen::Provisioner::ChefBase.enterprise_gem_available?).must_equal "kitchen-chef-enterprise"
+    end
+
+    it "returns 'kitchen-cinc' when kitchen-chef-enterprise is not available but kitchen-cinc is" do
+      mock_spec = stub
+      Gem::Specification.singleton_class.any_instance.stubs(:find_by_name).with("kitchen-chef-enterprise").raises(Gem::LoadError)
+      Gem::Specification.singleton_class.any_instance.stubs(:find_by_name).with("kitchen-cinc").returns(mock_spec)
+
+      _(Kitchen::Provisioner::ChefBase.enterprise_gem_available?).must_equal "kitchen-cinc"
+    end
+
+    it "returns nil when neither enterprise gem is available" do
+      Gem::Specification.singleton_class.any_instance.stubs(:find_by_name).raises(Gem::LoadError)
+
+      _(Kitchen::Provisioner::ChefBase.enterprise_gem_available?).must_be_nil
+    end
+
+    it "caches the result after first call" do
+      mock_spec = stub
+      call_count = 0
+      Gem::Specification.singleton_class.any_instance.stubs(:find_by_name).with do |name|
+        call_count += 1
+        true  # always matches
+      end.returns(mock_spec)
+
+      # Call twice
+      Kitchen::Provisioner::ChefBase.enterprise_gem_available?
+      Kitchen::Provisioner::ChefBase.enterprise_gem_available?
+
+      # Verify it was only called once due to caching
+      _(call_count).must_equal 1
+    end
+  end
+
   describe "#install_command" do
     before do
       platform.stubs(:shell_type).returns("bourne")

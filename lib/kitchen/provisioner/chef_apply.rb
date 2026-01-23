@@ -64,13 +64,13 @@ module Kitchen
       # @return [ChefApply] provisioner instance
       def self.new(config = {})
         enterprise_gem = ChefBase.enterprise_gem_available?
-        
+
         if enterprise_gem
           begin
             omnibus_chef_class = self
             require "#{enterprise_gem}/provisioner/chef_apply"
             enterprise_class = Kitchen::Provisioner.const_get(:ChefApply)
-            
+
             if enterprise_class != omnibus_chef_class
               if config[:instance] && config[:instance].respond_to?(:logger)
                 config[:instance].logger.info("Using #{enterprise_gem} implementation of ChefApply provisioner")
@@ -83,7 +83,7 @@ module Kitchen
             end
           end
         end
-        
+
         allocate.tap { |instance| instance.send(:initialize, config) }
       end
 

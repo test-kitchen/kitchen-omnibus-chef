@@ -201,7 +201,7 @@ When loading provisioners, kitchen-omnibus-chef checks for enterprise gems in th
 2. **kitchen-cinc** (Cinc Project)
 3. **kitchen-omnibus-chef** (fallback, this gem)
 
-### Installation
+### Compatability
 
 To use enterprise features, install the enterprise gem alongside kitchen-omnibus-chef:
 

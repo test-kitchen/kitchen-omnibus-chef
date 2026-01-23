@@ -246,15 +246,15 @@ module Kitchen
           if Gem::Specification.find_by_name("kitchen-chef-enterprise")
             "kitchen-chef-enterprise"
           end
-        rescue Gem::LoadError
-          begin
-            # Fall back to kitchen-cinc (Cinc Project)
-            if Gem::Specification.find_by_name("kitchen-cinc")
-              "kitchen-cinc"
-            end
-          rescue Gem::LoadError
-            nil
-          end
+                          rescue Gem::LoadError
+                            begin
+                              # Fall back to kitchen-cinc (Cinc Project)
+                              if Gem::Specification.find_by_name("kitchen-cinc")
+                                "kitchen-cinc"
+                              end
+                            rescue Gem::LoadError
+                              nil
+                            end
         end
       end
 
