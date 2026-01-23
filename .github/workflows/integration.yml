@@ -86,7 +86,7 @@ jobs:
           - proxy
         platform:
           - localhost
-          - localhost-licensing
+          - local-licensing
     steps:
       - uses: actions/checkout@v6
       - uses: ruby/setup-ruby@v1
