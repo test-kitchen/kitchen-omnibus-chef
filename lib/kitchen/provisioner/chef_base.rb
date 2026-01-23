@@ -142,7 +142,7 @@ module Kitchen
 
       default_config :checksum
 
-      default_config :license_key do |provisioner|
+      default_config :chef_license_key do |provisioner|
         ENV["CHEF_LICENSE_KEY"]
       end
 
@@ -293,15 +293,18 @@ module Kitchen
           warn(
             <<~WARNING
               =====================================================================================================
-              \e[1m\e[93m!!!WARNING!!! Omnitruck downloads are being shutdown for specific Chef Infra Client versions
-              and will stop working entirely in the future. It is recommended to switch to using the new
+              \e[1m\e[93m!!!WARNING!!!\e[0m Omnitruck downloads are being shutdown for specific Chef Infra Client versions
+              and will stop working entirely in the future. This kitchen-omnibus-chef gem is also not compatible with
+              infra-client 19+ new habitat based installation method.
+
+              It is recommended to switch to using the new
               kitchen-chef-enterprise plugin found with chef-test-kitchen-enterprise and bundled in chef-workstation 26.x+.
 
               Please refer to this blog for schedule of which chef-client versions and when they will be affected:
               https://www.chef.io/blog/decoding-the-change-progress-chef-is-moving-to-licensed-downloads
 
-              For non chef customers or community users it is recommended to switch to the kitchen-cinc plugin and cinc
-              provisioners like cinc_infra.\e[0m
+              For non chef customers or community users it is recommended to switch to the new kitchen-cinc plugin and cinc
+              provisioners like cinc_infra.
               =====================================================================================================
             WARNING
           )
@@ -553,8 +556,8 @@ module Kitchen
             opts[:install_command_options][:checksum] = config[:checksum] if config[:checksum]
           end
 
-          if config[:license_key]
-            opts[:install_command_options][:license_id] = config[:license_key]
+          if config[:chef_license_key]
+            opts[:install_command_options][:license_id] = config[:chef_license_key]
           end
 
           if instance.driver.cache_directory
