@@ -1,12 +1,23 @@
 # kitchen-omnibus-chef
 
-!!! DEPRECATED !!! Please use kitchen-chef-enterprise or kitchen-cinc gems instead.
+## ⚠️ IMPORTANT DEPRECATION NOTICE
+
+**Omnitruck downloads are being shutdown for specific Chef Infra Client versions and will stop working entirely in the future.** This gem is also not compatible with Chef Infra Client 19+ new Habitat-based installation method.
+
+### Recommended Migration Paths:
+
+- **For Chef customers**: Switch to [kitchen-chef-enterprise](https://github.com/chef/kitchen-chef-enterprise) (bundled in Chef Workstation 26.x+) for licensed download support
+- **For community users**: Switch to [kitchen-cinc](https://gitlab.com/cinc-project/kitchen-cinc) and use Cinc provisioners like `cinc_infra`
+
+Please refer to the [Chef blog](https://www.chef.io/blog/decoding-the-change-progress-chef-is-moving-to-licensed-downloads) for the schedule of affected versions.
+
+---
 
 A Test Kitchen provisioner for Chef Infra Client that downloads and installs omnibus packages.
 
 ## Overview
 
-This Test Kitchen plugin provides a provisioner that automatically downloads and installs the desired version of Chef Infra Client on your test instances using Chef's omnitruck API. This allows you to test your cookbooks against different Chef versions without pre-installing Chef on your images.
+This Test Kitchen plugin provides provisioners that automatically download and install the desired version of Chef Infra Client on your test instances using Chef's omnitruck API or licensed download endpoints. This allows you to test your cookbooks against different Chef versions without pre-installing Chef on your images.
 
 ## Installation
 
@@ -31,6 +42,16 @@ gem install kitchen-omnibus-chef
 ```
 
 ## Usage
+
+### Available Provisioners
+
+This gem provides five provisioners:
+
+- **`chef_infra`** - Modern Chef Infra Client provisioner (recommended)
+- **`chef_zero`** - Deprecated alias for chef_infra (maintained for backward compatibility)
+- **`chef_solo`** - Chef Solo provisioner (note: does not support parallel converge)
+- **`chef_apply`** - Chef Apply provisioner for running individual recipes
+- **`chef_target`** - Chef Target Mode provisioner (requires Chef 19.0.0+, Train-based transport)
 
 ### Basic Configuration
 
@@ -65,7 +86,6 @@ suites:
   - name: default
     run_list:
       - recipe[my_cookbook::default]
-    attributes:
 ```
 
 ### Configuration Options
@@ -75,15 +95,31 @@ The provisioner supports the following configuration options:
 #### `product_name`
 
 - **Type:** String
-- **Default:** `chef`
-- **Description:** The product to install. Typically `chef` for Chef Infra Client.
+- **Default:** `nil` (falls back to legacy install behavior)
+- **Description:** The product to install. Set to `chef` for Chef Infra Client. Required for using licensed downloads.
+
+#### `chef_license_key`
+
+- **Type:** String
+- **Default:** `ENV["CHEF_LICENSE_KEY"]`
+- **Description:** License key for downloading licensed Chef products. Required for licensed downloads.
+
+**Example:**
+
+```yaml
+provisioner:
+  name: chef_infra
+  product_name: chef
+  chef_license_key: your-license-key-here
+  version: latest
+```
 
 #### `channel`
 
-- **Type:** String
+- **Type:** String/Symbol
 - **Default:** `stable`
-- **Options:** `stable`, `current`
-- **Description:** The release channel to install from.
+- **Common Options:** `stable`, `current`
+- **Description:** The release channel to install from. Accepts any symbol value.
 
 #### `version`
 
@@ -114,11 +150,23 @@ provisioner:
 - **Options:** `accept`, `accept-no-persist`, `accept-silent`
 - **Description:** Accept the Chef license agreement.
 
-#### `download_url_override`
+#### `download_url`
 
 - **Type:** String
 - **Default:** none
-- **Description:** Override the download URL for custom package locations.
+- **Description:** Override the download URL for custom package locations or air-gapped environments.
+
+#### `checksum`
+
+- **Type:** String
+- **Default:** none
+- **Description:** SHA256 checksum to verify the downloaded package. Used with `download_url`.
+
+#### `platform`, `platform_version`, `architecture`
+
+- **Type:** String
+- **Default:** Auto-detected
+- **Description:** Explicitly specify platform details for package selection.
 
 ### Testing Multiple Chef Versions
 
@@ -161,7 +209,9 @@ For air-gapped environments or custom Chef builds:
 ```yaml
 provisioner:
   name: chef_infra
-  download_url_override: https://my-mirror.local/chef-packages/chef_18.3.0-1_amd64.deb
+  product_name: chef
+  download_url: https://my-mirror.local/chef-packages/chef_18.3.0-1_amd64.deb
+  checksum: sha256-checksum-here  # optional but recommended
 ```
 
 #### Installing from Current Channel
@@ -171,6 +221,7 @@ To test with the latest unstable builds:
 ```yaml
 provisioner:
   name: chef_infra
+  product_name: chef
   channel: current
   version: latest
 ```
@@ -182,7 +233,73 @@ Useful for testing installation scripts or ensuring a clean state:
 ```yaml
 provisioner:
   name: chef_infra
+  product_name: chef
   install_strategy: always
+```
+
+## Provisioner-Specific Notes
+
+### Chef Solo
+
+**Important:** ChefSolo does not support parallel converge due to Berkshelf not being thread-safe. Test Kitchen will run ChefSolo converges sequentially.
+
+```yaml
+provisioner:
+  name: chef_solo
+  product_name: chef
+  chef_license: accept-no-persist
+```
+
+### Chef Apply
+
+Chef Apply runs individual recipes without a full Chef run. Place your recipes in an `apply/` directory:
+
+```yaml
+provisioner:
+  name: chef_apply
+  product_name: chef
+
+suites:
+  - name: default
+    run_list:
+      - recipe1  # runs apply/recipe1.rb
+      - recipe2  # runs apply/recipe2.rb
+```
+
+### Chef Target Mode
+
+Chef Target Mode requires:
+- Chef Infra Client **19.0.0 or later**
+- A Train-based transport (e.g., `kitchen-transport-train`)
+
+```yaml
+driver:
+  name: vagrant
+
+transport:
+  name: train  # Required for chef_target
+
+provisioner:
+  name: chef_target
+  product_name: chef
+  product_version: "19.0.0"
+  chef_license: accept-no-persist
+```
+
+**Note:** Chef Target Mode has a default `install_strategy` of `"none"` since Chef runs from your local workstation.
+
+### Chef Zero
+
+Chef Zero is deprecated and maintained only for backward compatibility. It's an alias for ChefInfra. Use `chef_infra` instead:
+
+```yaml
+# Deprecated
+provisioner:
+  name: chef_zero
+
+# Use this instead
+provisioner:
+  name: chef_infra
 ```
 
 ## Enterprise Gem Integration
