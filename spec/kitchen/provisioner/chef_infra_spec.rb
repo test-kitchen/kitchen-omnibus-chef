@@ -88,7 +88,7 @@ describe Kitchen::Provisioner::ChefInfra do
       enterprise_class.stubs(:allocate).returns(enterprise_instance)
       enterprise_instance.stubs(:send).with(:initialize, has_entries(instance: instance))
 
-      provisioner = Kitchen::Provisioner::ChefInfra.new(config.merge(instance: instance))
+      Kitchen::Provisioner::ChefInfra.new(config.merge(instance: instance))
 
       _(logged_output.string).must_match(/Using kitchen-chef-enterprise implementation/)
     end
