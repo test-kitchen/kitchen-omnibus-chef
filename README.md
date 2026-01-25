@@ -81,7 +81,7 @@ The provisioner supports the following configuration options:
 #### `channel`
 
 - **Type:** String
-- - **Default:** `stable`
+- **Default:** `stable`
 - **Options:** `stable`, `current`
 - **Description:** The release channel to install from.
 
