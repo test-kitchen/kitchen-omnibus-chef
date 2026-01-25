@@ -4,7 +4,7 @@
 
 **Omnitruck downloads are being shutdown for specific Chef Infra Client versions and will stop working entirely in the future.** This gem is also not compatible with Chef Infra Client 19+ new Habitat-based installation method.
 
-### Recommended Migration Paths:
+### Recommended Migration Paths
 
 - **For Chef customers**: Switch to [kitchen-chef-enterprise](https://github.com/chef/kitchen-chef-enterprise) (bundled in Chef Workstation 26.x+) for licensed download support
 - **For community users**: Switch to [kitchen-cinc](https://gitlab.com/cinc-project/kitchen-cinc) and use Cinc provisioners like `cinc_infra`
@@ -269,6 +269,7 @@ suites:
 ### Chef Target Mode
 
 Chef Target Mode requires:
+
 - Chef Infra Client **19.0.0 or later**
 - A Train-based transport (e.g., `kitchen-transport-train`)
 
