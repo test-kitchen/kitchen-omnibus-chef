@@ -243,24 +243,24 @@ module Kitchen
         @enterprise_gem_checked = true
 
         enterprise_gem = begin
-          # Try kitchen-chef-enterprise first (Progress Chef Enterprise)
-          if Gem::Specification.find_by_name("kitchen-chef-enterprise")
-            "kitchen-chef-enterprise"
-          end
-        rescue Gem::LoadError
-          nil
-        end
+                           # Try kitchen-chef-enterprise first (Progress Chef Enterprise)
+                           if Gem::Specification.find_by_name("kitchen-chef-enterprise")
+                             "kitchen-chef-enterprise"
+                           end
+                         rescue Gem::LoadError
+                           nil
+                         end
 
         cinc_gem = nil
         if enterprise_gem.nil?
           cinc_gem = begin
-            # Fall back to kitchen-cinc (Cinc Project)
-            if Gem::Specification.find_by_name("kitchen-cinc")
-              "kitchen-cinc"
-            end
-          rescue Gem::LoadError
-            nil
-          end
+                       # Fall back to kitchen-cinc (Cinc Project)
+                       if Gem::Specification.find_by_name("kitchen-cinc")
+                         "kitchen-cinc"
+                       end
+                     rescue Gem::LoadError
+                       nil
+                     end
         end
 
         @enterprise_gem = enterprise_gem || cinc_gem
