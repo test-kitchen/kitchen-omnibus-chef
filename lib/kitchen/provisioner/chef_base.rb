@@ -142,7 +142,7 @@ module Kitchen
 
       default_config :checksum
 
-      default_config :chef_license_key do |provisioner|
+      default_config :chef_license_key do |_provisioner|
         ENV["CHEF_LICENSE_KEY"]
       end
 
