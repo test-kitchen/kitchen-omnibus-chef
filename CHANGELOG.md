@@ -1,5 +1,12 @@
 # Kitchen-omnibus-chef Change Log
 
+## [1.1.0](https://github.com/test-kitchen/kitchen-omnibus-chef/compare/v1.0.2...v1.1.0) (2026-01-27)
+
+
+### Features
+
+* add licensed download support ([#12](https://github.com/test-kitchen/kitchen-omnibus-chef/issues/12)) ([f6d5ee6](https://github.com/test-kitchen/kitchen-omnibus-chef/commit/f6d5ee6505b875a39fe7b77fb808fbad3e9da5f9))
+
 ## [1.0.2](https://github.com/test-kitchen/kitchen-omnibus-chef/compare/v1.0.1...v1.0.2) (2026-01-19)
 
 
