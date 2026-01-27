@@ -19,10 +19,45 @@ require_relative "chef_infra"
 
 module Kitchen
   module Provisioner
-    # Chef Target provisioner.
+    # Chef Target provisioner with enterprise gem delegation support.
+    #
+    # This provisioner will automatically detect and use kitchen-chef-enterprise
+    # or kitchen-cinc if they are installed, providing a seamless upgrade path
+    # for enterprise Chef features.
     #
     # @author Thomas Heinen <thomas.heinen@gmail.com>
     class ChefTarget < ChefInfra
+      # Factory method that returns the appropriate provisioner implementation.
+      # If an enterprise gem (kitchen-chef-enterprise or kitchen-cinc) is available,
+      # delegate to its implementation. Otherwise, use the standard implementation.
+      #
+      # @param config [Hash] configuration hash
+      # @return [ChefTarget] provisioner instance
+      def self.new(config = {})
+        enterprise_gem = ChefBase.enterprise_gem_available?
+
+        if enterprise_gem
+          begin
+            omnibus_chef_class = self
+            require "#{enterprise_gem}/provisioner/chef_target"
+            enterprise_class = Kitchen::Provisioner.const_get(:ChefTarget)
+
+            if enterprise_class != omnibus_chef_class
+              if config[:instance] && config[:instance].respond_to?(:logger)
+                config[:instance].logger.info("Using #{enterprise_gem} implementation of ChefTarget provisioner")
+              end
+              return enterprise_class.allocate.tap { |instance| instance.send(:initialize, config) }
+            end
+          rescue LoadError, NameError => e
+            if config[:instance] && config[:instance].respond_to?(:logger)
+              config[:instance].logger.debug("Could not load enterprise provisioner, using kitchen-omnibus-chef: #{e.message}")
+            end
+          end
+        end
+
+        allocate.tap { |instance| instance.send(:initialize, config) }
+      end
+
       MIN_VERSION_REQUIRED = "19.0.0".freeze
       class ChefVersionTooLow < UserError; end
       class ChefClientNotFound < UserError; end

@@ -48,10 +48,45 @@ require_relative "chef_base"
 
 module Kitchen
   module Provisioner
-    # Chef Apply provisioner.
+    # Chef Apply provisioner with enterprise gem delegation support.
     #
-    # @author SAWANOBORI Yukihiko <sawanoboriyu@higanworks.com>)
+    # This provisioner will automatically detect and use kitchen-chef-enterprise
+    # or kitchen-cinc if they are installed, providing a seamless upgrade path
+    # for enterprise Chef features.
+    #
+    # @author SAWANOBORI Yukihiko <sawanoboriyu@higanworks.com>
     class ChefApply < ChefBase
+      # Factory method that returns the appropriate provisioner implementation.
+      # If an enterprise gem (kitchen-chef-enterprise or kitchen-cinc) is available,
+      # delegate to its implementation. Otherwise, use the standard implementation.
+      #
+      # @param config [Hash] configuration hash
+      # @return [ChefApply] provisioner instance
+      def self.new(config = {})
+        enterprise_gem = ChefBase.enterprise_gem_available?
+
+        if enterprise_gem
+          begin
+            omnibus_chef_class = self
+            require "#{enterprise_gem}/provisioner/chef_apply"
+            enterprise_class = Kitchen::Provisioner.const_get(:ChefApply)
+
+            if enterprise_class != omnibus_chef_class
+              if config[:instance] && config[:instance].respond_to?(:logger)
+                config[:instance].logger.info("Using #{enterprise_gem} implementation of ChefApply provisioner")
+              end
+              return enterprise_class.allocate.tap { |instance| instance.send(:initialize, config) }
+            end
+          rescue LoadError, NameError => e
+            if config[:instance] && config[:instance].respond_to?(:logger)
+              config[:instance].logger.debug("Could not load enterprise provisioner, using kitchen-omnibus-chef: #{e.message}")
+            end
+          end
+        end
+
+        allocate.tap { |instance| instance.send(:initialize, config) }
+      end
+
       kitchen_provisioner_api_version 2
 
       plugin_version Kitchen::VERSION

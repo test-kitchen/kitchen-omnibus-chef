@@ -19,10 +19,59 @@ require_relative "chef_base"
 
 module Kitchen
   module Provisioner
-    # Chef Zero provisioner.
+    # Chef Infra provisioner with enterprise gem delegation support.
+    #
+    # This provisioner will automatically detect and use kitchen-chef-enterprise
+    # or kitchen-cinc if they are installed, providing a seamless upgrade path
+    # for enterprise Chef features.
     #
     # @author Fletcher Nichol <fnichol@nichol.ca>
     class ChefInfra < ChefBase
+      # Factory method that returns the appropriate provisioner implementation.
+      # If an enterprise gem (kitchen-chef-enterprise or kitchen-cinc) is available,
+      # delegate to its implementation. Otherwise, use the standard implementation.
+      #
+      # @param config [Hash] configuration hash
+      # @return [ChefInfra] provisioner instance
+      def self.new(config = {})
+        enterprise_gem = ChefBase.enterprise_gem_available?
+
+        if enterprise_gem
+          begin
+            # Store reference to our class before requiring enterprise gem
+            omnibus_chef_class = self
+
+            # Require the enterprise gem's provisioner
+            require "#{enterprise_gem}/provisioner/chef_infra"
+
+            # Check if a different class was loaded
+            enterprise_class = Kitchen::Provisioner.const_get(:ChefInfra)
+
+            if enterprise_class != omnibus_chef_class
+              # Log that we're delegating to enterprise implementation
+              if config[:instance] && config[:instance].respond_to?(:logger)
+                config[:instance].logger.info("Using #{enterprise_gem} implementation of ChefInfra provisioner")
+              end
+
+              # Return enterprise implementation
+              return enterprise_class.allocate.tap do |instance|
+                instance.send(:initialize, config)
+              end
+            end
+          rescue LoadError, NameError => e
+            # Enterprise gem didn't provide this provisioner, fall through to ours
+            if config[:instance] && config[:instance].respond_to?(:logger)
+              config[:instance].logger.debug("Could not load enterprise provisioner, using kitchen-omnibus-chef: #{e.message}")
+            end
+          end
+        end
+
+        # Use standard omnibus-chef implementation
+        allocate.tap do |instance|
+          instance.send(:initialize, config)
+        end
+      end
+
       kitchen_provisioner_api_version 2
 
       plugin_version Kitchen::VERSION

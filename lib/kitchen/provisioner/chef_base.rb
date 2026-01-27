@@ -142,6 +142,10 @@ module Kitchen
 
       default_config :checksum
 
+      default_config :chef_license_key do |_provisioner|
+        ENV["CHEF_LICENSE_KEY"]
+      end
+
       deprecate_config_for :require_chef_omnibus do |provisioner|
         case
         when provisioner[:require_chef_omnibus] == false
@@ -227,6 +231,41 @@ module Kitchen
         fully managed by using attribute settings.
       MSG
 
+      # Check if enterprise or cinc gems are available that provide
+      # higher-priority implementations of Chef provisioners
+      #
+      # @return [String, nil] the name of the enterprise gem if available
+      # @api private
+      def self.enterprise_gem_available?
+        @enterprise_gem_checked ||= false
+        return @enterprise_gem if @enterprise_gem_checked
+
+        @enterprise_gem_checked = true
+
+        enterprise_gem = begin
+                           # Try kitchen-chef-enterprise first (Progress Chef Enterprise)
+                           if Gem::Specification.find_by_name("kitchen-chef-enterprise")
+                             "kitchen-chef-enterprise"
+                           end
+                         rescue Gem::LoadError
+                           nil
+                         end
+
+        cinc_gem = nil
+        if enterprise_gem.nil?
+          cinc_gem = begin
+                       # Fall back to kitchen-cinc (Cinc Project)
+                       if Gem::Specification.find_by_name("kitchen-cinc")
+                         "kitchen-cinc"
+                       end
+                     rescue Gem::LoadError
+                       nil
+                     end
+        end
+
+        @enterprise_gem = enterprise_gem || cinc_gem
+      end
+
       # Reads the local Chef::Config object (if present). We do this because
       # we want to start bring Chef config and Chef Workstation config closer
       # together. For example, we want to configure proxy settings in 1
@@ -288,17 +327,21 @@ module Kitchen
         unless config[:download_url]
           warn(
             <<~WARNING
-              =====================================================================================================
-              \e[1m\e[93m!!!WARNING!!! Omnitruck downloads are being shutdown for specific Chef Infra Client versions
-              and will stop working entirely in the future. It is recommended to switch to using the new
-              kitchen-chef-enterprise plugin found with chef-test-kitchen-enterprise and bundled in chef-workstation 26.x+.
+              ==============================================================================================================
+              \e[1m\e[93m!!!WARNING!!! kitchen-omnibus-chef is deprecated\e[0m
+              Omnitruck downloads are being shutdown for specific Chef Infra Client versions and will stop working entirely
+              in the future. This kitchen-omnibus-chef gem is also not compatible with infra-client 19+ new habitat
+              based installation method.
+
+              For Chef customers it is recommended to switch to using the new kitchen-chef-enterprise plugin found with
+              chef-test-kitchen-enterprise and bundled in chef-workstation 26.x+.
 
               Please refer to this blog for schedule of which chef-client versions and when they will be affected:
               https://www.chef.io/blog/decoding-the-change-progress-chef-is-moving-to-licensed-downloads
 
-              For non chef customers or community users it is recommended to switch to the kitchen-cinc plugin and cinc
-              provisioners like cinc_infra.\e[0m
-              =====================================================================================================
+              For non Chef customers or community users it is recommended to switch to the new kitchen-cinc plugin and cinc
+              provisioners like cinc_infra.
+              ==============================================================================================================
             WARNING
           )
         end
@@ -547,6 +590,10 @@ module Kitchen
           if config[:download_url]
             opts[:install_command_options][:download_url_override] = config[:download_url]
             opts[:install_command_options][:checksum] = config[:checksum] if config[:checksum]
+          end
+
+          if config[:chef_license_key]
+            opts[:install_command_options][:license_id] = config[:chef_license_key]
           end
 
           if instance.driver.cache_directory

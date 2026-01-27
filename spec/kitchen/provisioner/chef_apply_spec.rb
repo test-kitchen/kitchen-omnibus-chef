@@ -51,6 +51,30 @@ describe Kitchen::Provisioner::ChefApply do
     _(provisioner.diagnose_plugin[:version]).must_equal Kitchen::VERSION
   end
 
+  describe "enterprise gem delegation" do
+    before do
+      Kitchen::Provisioner::ChefBase.instance_variable_set(:@enterprise_gem_checked, false)
+      Kitchen::Provisioner::ChefBase.instance_variable_set(:@enterprise_gem, nil)
+    end
+
+    it "uses standard implementation when no enterprise gem is available" do
+      Gem::Specification.singleton_class.any_instance.stubs(:find_by_name).with("kitchen-chef-enterprise").raises(Gem::LoadError)
+      Gem::Specification.singleton_class.any_instance.stubs(:find_by_name).with("kitchen-cinc").raises(Gem::LoadError)
+
+      provisioner = Kitchen::Provisioner::ChefApply.new(config).finalize_config!(instance)
+      _(provisioner).must_be_instance_of Kitchen::Provisioner::ChefApply
+    end
+
+    it "falls back to standard implementation when enterprise gem fails to load" do
+      mock_spec = stub("gem_spec")
+      Gem::Specification.singleton_class.any_instance.stubs(:find_by_name).with("kitchen-chef-enterprise").returns(mock_spec)
+      Kitchen::Provisioner::ChefApply.stubs(:require).raises(LoadError.new("cannot load"))
+
+      provisioner = Kitchen::Provisioner::ChefApply.new(config).finalize_config!(instance)
+      _(provisioner).must_be_instance_of Kitchen::Provisioner::ChefApply
+    end
+  end
+
   describe "default config" do
     it "sets :chef_apply_path to a path using :chef_omnibus_root" do
       config[:chef_omnibus_root] = "/nice/place"
