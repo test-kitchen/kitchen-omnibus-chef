@@ -25,7 +25,7 @@ jobs:
       matrix:
         ruby: ["3.4"]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ matrix.ruby }}
@@ -52,7 +52,7 @@ jobs:
   #         echo "deb [signed-by=/usr/share/keyrings/oracle-virtualbox-2016.gpg] https://download.virtualbox.org/virtualbox/debian $(lsb_release -cs) contrib" | sudo tee /etc/apt/sources.list.d/virtualbox.list
   #         sudo apt-get update
   #         sudo apt-get install -y software-properties-common libarchive-tools virtualbox-7.2
-  #     - uses: actions/checkout@v6
+  #     - uses: actions/checkout@v7
   #     - uses: ruby/setup-ruby@v1
   #       with:
   #         ruby-version: ${{ matrix.ruby }}
@@ -88,7 +88,7 @@ jobs:
           - localhost
           - local-licensing
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ matrix.ruby }}
@@ -125,7 +125,7 @@ jobs:
           - windows-winrm
           - windows-licensing-winrm
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ matrix.ruby }}
@@ -156,7 +156,7 @@ jobs:
           - localhost
           - local-licensing
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ matrix.ruby }}
@@ -187,7 +187,7 @@ jobs:
         platform:
           - windows-fips-ssh
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ matrix.ruby }}
