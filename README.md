@@ -1,5 +1,7 @@
 # kitchen-omnibus-chef
 
+[![Gem Version](https://badge.fury.io/rb/kitchen-omnibus-chef.svg)](https://badge.fury.io/rb/kitchen-omnibus-chef)
+
 ## ⚠️ IMPORTANT DEPRECATION NOTICE
 
 **Omnitruck downloads are being shutdown for specific Chef Infra Client versions and will stop working entirely in the future.** This gem is also not compatible with Chef Infra Client 19+ new Habitat-based installation method.
