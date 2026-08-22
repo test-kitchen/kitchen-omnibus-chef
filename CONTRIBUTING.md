@@ -1,4 +1,63 @@
-# Release Process
+# Contributing to kitchen-omnibus-chef
+
+Thanks for your interest in improving kitchen-omnibus-chef. Bug reports, feature
+requests, and pull requests are all welcome.
+
+> **Note:** this gem is deprecated. See the deprecation notice in
+> [README.md](README.md) for the recommended migration paths. Fixes are still
+> welcome, but new features are better directed at
+> [kitchen-chef-enterprise](https://github.com/chef/kitchen-chef-enterprise) or
+> [kitchen-cinc](https://gitlab.com/cinc-project/kitchen-cinc).
+
+## Reporting issues
+
+Report bugs and request features on the
+[issue tracker](https://github.com/test-kitchen/kitchen-omnibus-chef/issues). For
+bugs, please include:
+
+- the version of kitchen-omnibus-chef and Test Kitchen you are using
+- which provisioner you are using (`chef_infra`, `chef_solo`, `chef_apply`,
+  `chef_target`, or `chef_zero`)
+- whether any of the enterprise or Cinc gems are also installed, since they
+  change which implementation the `chef_*` names resolve to
+- your `kitchen.yml`
+- the output of the failing command, ideally with `-l debug`
+
+## Development setup
+
+```shell
+git clone https://github.com/test-kitchen/kitchen-omnibus-chef.git
+cd kitchen-omnibus-chef
+bundle install
+```
+
+## Running the tests
+
+```shell
+bundle exec rake          # unit tests and linting
+bundle exec rake spec     # unit tests only
+bundle exec rake style    # Cookstyle / RuboCop only
+```
+
+Many style offenses can be corrected automatically:
+
+```shell
+bundle exec cookstyle -a
+```
+
+## Submitting changes
+
+1. Fork the repository.
+2. Create a feature branch off `main`.
+3. Make your change, adding or updating tests to cover it.
+4. Make sure `bundle exec rake` passes.
+5. Push the branch to your fork and open a pull request.
+
+Please keep pull requests focused on a single change — it makes review much
+faster. Update the documentation in `README.md` when you add or change a
+configuration option.
+
+## Release Process
 
 This release process applies to all Test Kitchen projects, but each project may have additional requirements.
 

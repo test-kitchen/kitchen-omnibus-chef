@@ -168,6 +168,93 @@ provisioner:
 - **Default:** Auto-detected
 - **Description:** Explicitly specify platform details for package selection.
 
+#### `product_version`
+
+- **Type:** String/Symbol
+- **Default:** `:latest`
+- **Description:** Version of the product to install when using `product_name`. The modern equivalent of `version`.
+
+#### Legacy omnibus options
+
+These predate `product_name` and are used when it is not set.
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `require_chef_omnibus` | `true` | Install Chef Infra Client via omnibus. `true` for the latest, a version string to pin, or `false` to skip installation entirely. |
+| `chef_omnibus_url` | `https://omnitruck.chef.io/install.sh` | URL of the omnibus install script. |
+| `chef_omnibus_install_options` | `nil` | Extra options appended to the omnibus install command. |
+| `chef_omnibus_root` | `/opt/chef` | Root directory of the omnibus installation on the instance. |
+
+### Run list and attributes
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `run_list` | `[]` | Run list applied to the instance. Usually set per suite. |
+| `attributes` | `{}` | Node attributes merged into the run. |
+| `json_attributes` | `true` | Write attributes to a JSON file and pass it to the client. |
+| `named_run_list` | *unset* | Named run list to use from a Policyfile. |
+| `policy_group` | `nil` | Policy group to use from a Policyfile. |
+
+### Cookbook resolution
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `policyfile_path` | *auto* | Path to a `Policyfile.rb`. Enables Policyfile resolution. |
+| `policyfile` | `nil` | Legacy alias for `policyfile_path`. |
+| `berksfile_path` | *auto* | Path to a `Berksfile`. Enables Berkshelf resolution. |
+| `berksfile` | *auto* | Alternate spelling of `berksfile_path`; `berksfile_path` wins when both are set. |
+| `always_update_cookbooks` | `true` | Update cookbooks on every converge rather than reusing the resolved set. |
+| `cookbook_files_glob` | *see source* | Glob controlling which cookbook files are copied into the sandbox. |
+
+### Converge behaviour
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `log_level` | Test Kitchen's log level | Log level passed to the client. |
+| `log_file` | `nil` | Write client output to this file on the instance. |
+| `profile_ruby` | `false` | Enable Ruby profiling during the run. |
+| `deprecations_as_errors` | `false` | Treat Chef deprecation warnings as errors. |
+| `multiple_converge` | `1` | Number of times to converge in a single `converge` action. |
+| `enforce_idempotency` | `false` | Fail if the final converge still makes changes. Use with `multiple_converge: 2`. |
+| `retry_on_exit_code` | `[35, 213]` | Exit codes that cause the converge to be retried. 35 is "reboot required", 213 is "client upgraded". |
+| `slow_resource_report` | *unset* | Emit the slow resource report at the end of the run. |
+| `client_rb` | `{}` | Extra settings written into `client.rb` (`chef_infra` / `chef_zero` / `chef_target`). |
+| `solo_rb` | `{}` | Extra settings written into `solo.rb` (`chef_solo`). |
+| `legacy_mode` | `false` | Pass `--legacy-mode` to `chef-solo` (`chef_solo` only). |
+| `chef_zero_host` | `nil` | Host the in-memory Chef Zero server binds to. |
+| `chef_zero_port` | `8889` | Port the in-memory Chef Zero server binds to. |
+| `sudo` | `true` | Run the client under sudo. Under `chef_target` this defaults to `true` and is applied locally. |
+
+### Paths
+
+Sandbox paths are on your workstation; the rest are on the instance.
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `root_path` | driver default | Directory on the instance the sandbox is copied into. Every other on-instance path is joined against it. |
+| `config_path` | `nil` | Path to an existing config file to use instead of a generated one. |
+| `data_path` | *auto* | Local `data` directory copied to the instance. |
+| `data_bags_path` | *auto* | Local `data_bags` directory. |
+| `environments_path` | *auto* | Local `environments` directory. |
+| `nodes_path` | *auto* | Local `nodes` directory. |
+| `roles_path` | *auto* | Local `roles` directory. |
+| `clients_path` | *auto* | Local `clients` directory. |
+| `encrypted_data_bag_secret_key_path` | *auto* | Local path to the encrypted data bag secret. |
+| `chef_client_path` | *auto* | Path to `chef-client` on the instance (`chef_infra` / `chef_zero` / `chef_target`). |
+| `chef_solo_path` | *auto* | Path to `chef-solo` on the instance (`chef_solo`). |
+| `chef_apply_path` | *auto* | Path to `chef-apply` on the instance (`chef_apply`). |
+| `apply_path` | *auto* | Path to the recipe applied by `chef_apply`. |
+| `ruby_bindir` | *auto* | Directory containing the Ruby that runs the client. |
+
+### Target mode file transfer
+
+`chef_target` runs the converge from your workstation, so it can move files around the run.
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `uploads` | `{}` | Files copied to the instance before the converge. Keys are local paths, values remote destinations. |
+| `downloads` | `{}` | Files copied back after the converge. Keys are remote paths, values local destinations. |
+
 ### Testing Multiple Chef Versions
 
 You can test your cookbook against multiple Chef versions by defining multiple suites:
@@ -343,9 +430,9 @@ gem 'kitchen-omnibus-chef'
 
 No configuration changes are needed - Test Kitchen will automatically use the enterprise implementation when available.
 
-## Running Tests
+## Running Test Kitchen
 
-Once configured, use standard Test Kitchen commands:
+Once configured, use the standard Test Kitchen commands:
 
 ```shell
 # List all test instances
@@ -361,9 +448,34 @@ kitchen test
 kitchen destroy
 ```
 
+## Using with Cinc
+
+This gem is the Chef Infra Client provisioner, and the commands above assume
+[Chef Workstation](https://www.chef.io/downloads/tools/workstation).
+
+If you are using [Cinc Workstation](https://cinc.sh/start/workstation/), or you
+are a community user affected by the licensed-download changes described in the
+[deprecation notice](#%EF%B8%8F-important-deprecation-notice), use
+[kitchen-cinc](https://gitlab.com/cinc-project/kitchen-cinc) instead. It provides
+the same provisioners under `cinc_*` names, installing Cinc Client from the Cinc
+omnitruck API rather than Chef's:
+
+```yaml
+provisioner:
+  name: cinc_infra
+```
+
+kitchen-cinc also registers the `chef_*` names, so an existing `kitchen.yml`
+using `chef_infra` keeps working and transparently runs the Cinc equivalent. See
+[Enterprise Gem Integration](#enterprise-gem-integration) below for how the
+`chef_*` names are resolved when several of these gems are installed.
+
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at <https://github.com/test-kitchen/kitchen-omnibus-chef>.
+Bug reports and pull requests are welcome on
+[GitHub](https://github.com/test-kitchen/kitchen-omnibus-chef). See
+[CONTRIBUTING.md](CONTRIBUTING.md) for development setup, how to run the tests,
+and the release process.
 
 ## License
 
