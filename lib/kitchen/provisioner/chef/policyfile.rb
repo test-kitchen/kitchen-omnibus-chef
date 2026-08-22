@@ -148,7 +148,7 @@ module Kitchen
         # renamed `chef-cli` under the hood and is shipped in the `chef-cli` gem.
         #
         # @api private
-        # @returns [String]
+        # @return [String]
         def cli_path
           @cli_path ||= which("chef-cli") || which("chef") || no_cli_found_error
         end
