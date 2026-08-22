@@ -632,8 +632,13 @@ module Kitchen
             opts[:install_command_options][:checksum] = config[:checksum] if config[:checksum]
           end
 
+          # license_id is a top-level mixlib-install option, not an install
+          # command option. The PowerShell generator emits "-license_id <value>"
+          # from the top-level option and then appends every
+          # install_command_options key, so passing it here as well produced
+          # "-license_id" twice and PowerShell failed to bind the parameter.
           if config[:chef_license_key]
-            opts[:install_command_options][:license_id] = config[:chef_license_key]
+            opts[:license_id] = config[:chef_license_key]
           end
 
           if instance.driver.cache_directory
