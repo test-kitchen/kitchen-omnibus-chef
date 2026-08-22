@@ -5,6 +5,7 @@
 kitchen-omnibus-chef is a Test Kitchen plugin that provides Chef provisioners for testing cookbooks and infrastructure code. This gem is included in Chef Workstation but can also be installed standalone.
 
 ### Key Features
+
 - Automatic downloading and installation of Chef Infra Client using Chef's omnitruck API
 - Support for multiple provisioner types: ChefInfra, ChefZero (deprecated), ChefSolo, ChefApply, and ChefTarget
 - Integration with Policyfiles and Berkshelf for cookbook dependency resolution
@@ -15,6 +16,7 @@ kitchen-omnibus-chef is a Test Kitchen plugin that provides Chef provisioners fo
 ## Architecture
 
 ### Provisioner Hierarchy
+
 - `ChefBase` - Base class with common functionality for all Chef provisioners
 - `ChefInfra` - Main provisioner using chef-client in local mode (preferred)
 - `ChefZero` - Deprecated alias for ChefInfra (maintains compatibility)
@@ -27,13 +29,17 @@ kitchen-omnibus-chef is a Test Kitchen plugin that provides Chef provisioners fo
 kitchen-omnibus-chef implements a **wrapper/proxy pattern** to automatically detect and delegate to enterprise implementations:
 
 #### Detection Mechanism
+
 Located in `ChefBase.enterprise_gem_available?`:
+
 1. Checks for `kitchen-chef-enterprise` gem first (Progress Chef Enterprise)
 2. Falls back to `kitchen-cinc` gem (Cinc Project)
 3. Returns `nil` if neither is found
 
 #### Delegation Pattern
+
 Each provisioner class (`ChefInfra`, `ChefSolo`, `ChefApply`, `ChefTarget`, `ChefZero`) implements:
+
 - **Factory method pattern** via overridden `self.new`
 - **Runtime detection** of enterprise gems
 - **Automatic delegation** to enterprise implementation if found
@@ -41,11 +47,13 @@ Each provisioner class (`ChefInfra`, `ChefSolo`, `ChefApply`, `ChefTarget`, `Che
 - **Logging** to indicate which implementation is used
 
 #### Priority Order
+
 1. **kitchen-chef-enterprise** (highest priority)
 2. **kitchen-cinc** (secondary priority)
 3. **kitchen-omnibus-chef** (fallback)
 
 #### Implementation Details
+
 ```ruby
 # Each provisioner checks on instantiation
 def self.new(config = {})
@@ -73,6 +81,7 @@ end
 ```
 
 ### Key Module Structure
+
 - `/lib/kitchen/provisioner/` - Main provisioner implementations
 - `/lib/kitchen/provisioner/chef/` - Support modules (Policyfile, Berkshelf, CommonSandbox)
 - `/spec/` - Unit tests using Minitest
@@ -82,10 +91,12 @@ end
 ### Critical Configuration Names
 
 #### `chef_license_key` (NOT `license_key`)
+
 - **Purpose**: Specify a Chef license key for licensed Chef product downloads
 - **Environment Variable**: `CHEF_LICENSE_KEY`
 - **Internal Mapping**: Maps to `:license_id` in Mixlib::Install options
 - **Example**:
+
   ```yaml
   provisioner:
     name: chef_infra
@@ -93,6 +104,7 @@ end
   ```
 
 #### Product Installation Options (RFC 091)
+
 These are the modern configuration options (preferred over deprecated options):
 
 - `product_name` - Product to install (`chef` or `chef-workstation`)
@@ -106,11 +118,13 @@ These are the modern configuration options (preferred over deprecated options):
 - `architecture` - Override architecture detection
 
 #### Deprecated Options (Still Supported)
+
 - `require_chef_omnibus` - Use `product_name` + `install_strategy` instead
 - `chef_omnibus_url` - Use `download_url` instead
 - `chef_omnibus_install_options` - Use new configuration options instead
 
 ### Chef Configuration Options
+
 - `chef_license` - Accept Chef EULA (`"accept"`, `"accept-no-persist"`, `"accept-silent"`)
 - `run_list` - Chef run list (default: `[]`)
 - `attributes` - Chef attributes hash (default: `{}`)
@@ -122,17 +136,21 @@ These are the modern configuration options (preferred over deprecated options):
 - `retry_on_exit_code` - Exit codes to retry on (default: `[35, 213]`)
 
 ### Policyfile Configuration
+
 - `policyfile` - Legacy compatibility option (use `policyfile_path` instead)
 - `policyfile_path` - Path to Policyfile.rb (auto-detects if not set)
 - `policy_group` - Policy group for policyfile export
 - `always_update_cookbooks` - Update cookbooks on every run (default: `true`)
 
 ### Berkshelf Configuration
+
 - `berksfile_path` - Path to Berksfile (auto-detects if not set)
 - `always_update_cookbooks` - Update cookbooks on every run (default: `true`)
 
 ### Path Configuration
+
 All paths are auto-calculated if not specified:
+
 - `data_path` - Path to Chef data directory
 - `data_bags_path` - Path to data bags
 - `environments_path` - Path to environments
@@ -146,11 +164,13 @@ All paths are auto-calculated if not specified:
 ### Adding New Configuration Options
 
 1. **Define in ChefBase**: Add `default_config` in `chef_base.rb`
+
    ```ruby
    default_config :my_option, default_value
    ```
 
 2. **Update Spec Tests**: Add tests in `spec/kitchen/provisioner/chef_base_spec.rb`
+
    ```ruby
    it ":my_option defaults to default_value" do
      _(provisioner[:my_option]).must_equal default_value
@@ -171,12 +191,14 @@ All paths are auto-calculated if not specified:
 ### Testing Practices
 
 #### Unit Tests
+
 - Located in `/spec/kitchen/provisioner/`
 - Use Minitest (`must_equal`, `must_be_nil`, etc.)
 - Mock external dependencies (Mixlib::Install, file system operations)
 - Test both default values and custom configurations
 
 #### Integration Tests
+
 - Use multiple `kitchen.yml` files for different scenarios:
   - `kitchen.yml` - Standard tests
   - `kitchen.dokken.yml` - Docker-based tests
@@ -184,6 +206,7 @@ All paths are auto-calculated if not specified:
   - `kitchen.proxy.yml` - Proxy configuration tests
 
 #### Test Patterns
+
 ```ruby
 # Test default values
 it ":config_option defaults to expected_value" do
@@ -209,7 +232,9 @@ end
 ## Common Patterns
 
 ### Enterprise Gem Detection and Delegation
+
 When adding new provisioners or modifying existing ones:
+
 1. **Always implement the factory pattern** via `self.new` override
 2. **Check for enterprise gems** using `ChefBase.enterprise_gem_available?`
 3. **Attempt to load enterprise implementation** with proper error handling
@@ -217,6 +242,7 @@ When adding new provisioners or modifying existing ones:
 5. **Fall back gracefully** to local implementation
 
 Example pattern:
+
 ```ruby
 def self.new(config = {})
   enterprise_gem = ChefBase.enterprise_gem_available?
@@ -241,18 +267,23 @@ end
 ```
 
 ### Detecting Policyfile vs Berkshelf
+
 The provisioner auto-detects cookbook management:
+
 1. Checks for `Policyfile.rb` (uses Policyfile if found)
 2. Falls back to `Berksfile` (uses Berkshelf if found)
 3. Otherwise, expects cookbooks in standard locations
 
 ### Platform Detection
+
 - OS type detection via `platform.os_type` (`:windows` or `:unix`)
 - PowerShell detection via `powershell_shell?`
 - Windows-specific path handling with `.bat` extensions
 
 ### Mixlib::Install Integration
+
 Configuration flows from kitchen-omnibus-chef to Mixlib::Install:
+
 - `product_name` → `:product_name`
 - `product_version` → `:product_version`
 - `channel` → `:channel`
@@ -262,6 +293,7 @@ Configuration flows from kitchen-omnibus-chef to Mixlib::Install:
 ## Enterprise Gem Compatibility
 
 ### Design Principles
+
 1. **Non-invasive** - No changes required to Test Kitchen core
 2. **Backward compatible** - Works with or without enterprise gems
 3. **Transparent** - Logs indicate which implementation is active
@@ -269,7 +301,9 @@ Configuration flows from kitchen-omnibus-chef to Mixlib::Install:
 5. **Fallback-safe** - Always works even if enterprise gems fail to load
 
 ### Testing Enterprise Delegation
+
 When testing the delegation system:
+
 1. Mock `Gem::Specification.find_by_name` to simulate gem presence
 2. Test both enterprise gem available and unavailable scenarios
 3. Verify logging output indicates correct implementation
@@ -279,12 +313,14 @@ When testing the delegation system:
 ## Deprecation Handling
 
 When deprecating config options:
+
 1. Use `deprecate_config_for` macro in ChefBase
 2. Provide clear migration path in deprecation message
 3. Continue supporting old options for backward compatibility
 4. Set `deprecations_as_errors: true` in config to test strict mode
 
 Example:
+
 ```ruby
 deprecate_config_for :old_option, Util.outdent!(<<-MSG)
   The 'old_option' attribute will be replaced by 'new_option'.
@@ -309,12 +345,14 @@ MSG
 ## Dependencies
 
 ### Runtime Dependencies
+
 - `test-kitchen` >= 4.0
 - `mixlib-install` >= 3.14 (Chef package installation)
 - `mixlib-shellout` >= 1.2, < 4.0 (Command execution)
 - `license-acceptance` >= 1.0.11, < 3.0 (Chef EULA handling)
 
 ### Optional Dependencies
+
 - `berkshelf` - For Berkshelf-based cookbook resolution
 - `chef-config` - For Chef Workstation integration
 
