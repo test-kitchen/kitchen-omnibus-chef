@@ -20,3 +20,7 @@ end
 group :linting do
   gem "cookstyle"
 end
+
+group :docs do
+  gem "yard"
+end

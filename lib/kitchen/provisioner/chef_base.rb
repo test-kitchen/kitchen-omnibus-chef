@@ -25,6 +25,11 @@ require_relative "chef/policyfile"
 require_relative "chef/berkshelf"
 require_relative "chef/common_sandbox"
 
+# Namespace for the license-acceptance gem.
+#
+# Declared here as an autoload so the gem's require chain -- which pulls in
+# pastel and the tty-* family -- is only paid for on runs that actually need
+# to accept a licence.
 module LicenseAcceptance
   autoload :Acceptor, "license_acceptance/acceptor"
 end
@@ -36,7 +41,9 @@ rescue LoadError # rubocop:disable Lint/HandleExceptions
   # This space left intentionally blank.
 end
 
+# Test Kitchen's top-level namespace.
 module Kitchen
+  # Test Kitchen's provisioner plugins.
   module Provisioner
     # Common implementation details for Chef-related provisioners.
     #
@@ -283,6 +290,10 @@ module Kitchen
         ChefConfig::Config.export_proxies if defined?(ChefConfig::Config.export_proxies)
       end
 
+      # Reports the driver's deprecated configuration during `kitchen doctor`.
+      #
+      # @param state [Hash] instance state
+      # @return [void]
       def doctor(state)
         deprecated_config = instance.driver.instance_variable_get(:@deprecated_config)
         deprecated_config.each do |attr, msg|
@@ -322,7 +333,14 @@ module Kitchen
         end
       end
 
-      # (see Base#check_license)
+      # Accepts the Chef license, warning about this gem's deprecation.
+      #
+      # Omnitruck downloads are being shut down, and this gem does not support
+      # the Habitat-based install used by Infra Client 19+, so a run without an
+      # explicit +download_url+ warns before proceeding.
+      #
+      # @return [void]
+      # @raise [Kitchen::UserError] if the license is declined
       def check_license
         unless config[:download_url]
           warn(
@@ -364,14 +382,24 @@ module Kitchen
         end
       end
 
-      # (see Base#create_sandbox)
+      # Creates the local sandbox directory that gets uploaded to the instance.
+      #
+      # Validates the sandbox options first, so a misconfigured run fails before
+      # anything is copied rather than partway through.
+      #
+      # @return [void]
       def create_sandbox
         super
         sanity_check_sandbox_options!
         Chef::CommonSandbox.new(config, sandbox_path, instance).populate
       end
 
-      # (see Base#init_command)
+      # Shell code run on the instance before the sandbox is uploaded.
+      #
+      # Clears out the cookbook, data bag, role, and environment directories from
+      # any previous converge, so a deleted cookbook does not linger.
+      #
+      # @return [String] platform-appropriate shell code
       def init_command
         dirs = %w{
           cookbooks data data_bags environments roles clients
@@ -387,7 +415,13 @@ module Kitchen
         prefix_command(shell_code_from_file(vars, "chef_base_init_command"))
       end
 
-      # (see Base#install_command)
+      # Shell code that installs Chef Infra Client on the instance.
+      #
+      # Returns nothing when there is no product to install, or when
+      # +install_strategy+ is +"skip"+, which leaves an already-provisioned
+      # image untouched.
+      #
+      # @return [String, nil] shell code, or nil when no install should happen
       def install_command
         return unless config[:require_chef_omnibus] || config[:product_name]
         return if config[:product_name] && config[:install_strategy] == "skip"
@@ -397,6 +431,12 @@ module Kitchen
 
       private
 
+      # Trailing shell fragment that propagates the exit code.
+      #
+      # PowerShell does not surface a failed native command's exit status by
+      # itself, so it has to be appended explicitly. Bourne shells need nothing.
+      #
+      # @return [String, nil] nil on Bourne shells
       def last_exit_code
         "; exit $LastExitCode" if powershell_shell?
       end
@@ -626,6 +666,9 @@ module Kitchen
         windows_os? ? "-download_directory" : "-d"
       end
 
+      # Shell code that installs Chef Infra Client from a local package file.
+      #
+      # @return [String] platform-appropriate shell code
       def install_from_file(command)
         install_file = "#{config[:root_path]}/chef-installer.sh"
         script = []

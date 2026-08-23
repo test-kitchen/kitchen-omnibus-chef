@@ -58,18 +58,37 @@ module Kitchen
         allocate.tap { |instance| instance.send(:initialize, config) }
       end
 
+      # Oldest Chef Infra Client that supports Target Mode.
       MIN_VERSION_REQUIRED = "19.0.0".freeze
+      # Raised when the local Chef Infra Client predates Target Mode support.
       class ChefVersionTooLow < UserError; end
+      # Raised when no chef-client executable can be found locally.
       class ChefClientNotFound < UserError; end
+      # Raised when the configured transport is not Train-based.
       class RequireTrainTransport < UserError; end
 
       default_config :install_strategy, "none"
       default_config :sudo, true
 
+      # @return [String] empty; Target Mode runs the client locally, so there
+      #   is nothing to install on the instance
       def install_command; ""; end
+      # @return [String] empty; nothing is staged on the instance
       def init_command; ""; end
+      # @return [String] empty; nothing is prepared on the instance
       def prepare_command; ""; end
 
+      # Builds the chef-client arguments, adding the Target Mode flags.
+      #
+      # Writes the transport's credentials to a per-instance file under
+      # .kitchen/ and points --credentials at it, because Target Mode drives the
+      # instance over Train from the workstation rather than running on it.
+      #
+      # @param client_rb_filename [String] the generated client.rb
+      # @return [Array<String>] command line arguments
+      # @raise [RequireTrainTransport] if the transport is not Train-based
+      # @raise [ChefClientNotFound] if chef-client is not installed locally
+      # @raise [ChefVersionTooLow] if the local chef-client is too old
       def chef_args(client_rb_filename)
         # Dummy execution to initialize and test remote connection
         connection = instance.remote_exec("echo Connection established")
@@ -87,6 +106,11 @@ module Kitchen
         )
       end
 
+      # Verifies the configured transport can hand over a Train URI.
+      #
+      # @param connection [Object] the transport connection
+      # @return [void]
+      # @raise [RequireTrainTransport] if it cannot
       def check_transport(connection)
         debug("Checking for active transport")
 
@@ -98,6 +122,11 @@ module Kitchen
         debug("Kitchen transport responds to train_uri function call, as required")
       end
 
+      # Verifies a new enough chef-client is installed on the workstation.
+      #
+      # @return [void]
+      # @raise [ChefClientNotFound] if the executable is missing
+      # @raise [ChefVersionTooLow] if it is older than {MIN_VERSION_REQUIRED}
       def check_local_chef_client
         debug("Checking for chef-client version")
 
@@ -119,10 +148,18 @@ module Kitchen
         debug("Chef Infra found and version constraints match")
       end
 
+      # @return [String] the kitchen root, from the driver's configuration
       def kitchen_basepath
         instance.driver.config[:kitchen_root]
       end
 
+      # Builds the sandbox and repoints the config at it.
+      #
+      # Target Mode reads config.rb from the local sandbox rather than from
+      # /tmp/kitchen on the instance, so root_path is rewritten before the
+      # config is generated.
+      #
+      # @return [void]
       def create_sandbox
         super
 
@@ -131,6 +168,15 @@ module Kitchen
         prepare_config_rb
       end
 
+      # Runs the whole converge from the workstation.
+      #
+      # Uploads, runs chef-client locally against the remote target while
+      # streaming its output into the Test Kitchen logger, then downloads. The
+      # sandbox is cleaned up whether or not the run succeeded.
+      #
+      # @param state [Hash] instance state describing how to connect
+      # @return [void]
+      # @raise [Kitchen::ActionFailed] if the transport fails
       def call(state)
         remote_connection = instance.transport.connection(state)
 

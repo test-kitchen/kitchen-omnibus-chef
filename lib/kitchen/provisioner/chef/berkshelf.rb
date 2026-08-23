@@ -20,6 +20,7 @@ require "kitchen/logging"
 
 module Kitchen
   module Provisioner
+    # Support classes shared by the chef_* provisioners.
     module Chef
       # Chef cookbook resolver that uses Berkshelf and a Berksfile to calculate
       # dependencies.
