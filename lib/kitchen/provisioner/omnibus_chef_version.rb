@@ -15,9 +15,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Test Kitchen's top-level namespace.
 module Kitchen
+  # Test Kitchen's provisioner plugins.
   module Provisioner
-    # Version string for Dokken Kitchen driver
+    # The version of the kitchen-omnibus-chef gem.
     OMNIBUS_CHEF_VERSION = "1.1.0".freeze
   end
 end

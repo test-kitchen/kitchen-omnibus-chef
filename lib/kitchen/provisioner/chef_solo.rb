@@ -74,18 +74,22 @@ module Kitchen
           .tap { |path| path.concat(".bat") if provisioner.windows_os? }
       end
 
-      # (see Base#config_filename)
+      # @return [String] the config file chef-solo reads, +solo.rb+
       def config_filename
         "solo.rb"
       end
 
-      # (see Base#create_sandbox)
+      # Builds the sandbox and writes +solo.rb+ into it.
+      #
+      # @return [void]
       def create_sandbox
         super
         prepare_config_rb
       end
 
-      # (see Base#run_command)
+      # Shell code that runs chef-solo.
+      #
+      # @return [String] platform-appropriate shell code
       def run_command
         cmd = sudo(config[:chef_solo_path]).dup
           .tap { |str| str.insert(0, "& ") if powershell_shell? }
