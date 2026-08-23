@@ -531,11 +531,24 @@ describe Kitchen::Provisioner::ChefBase do
         cmd
       end
 
-      it "will set the chef_license_key if given" do
+      it "will set the chef_license_key as a top-level license_id if given" do
         config[:chef_license_key] = "test-license-key-12345"
 
         Mixlib::Install.expects(:new).with do |opts|
-          _(opts[:install_command_options][:license_id]).must_equal "test-license-key-12345"
+          _(opts[:license_id]).must_equal "test-license-key-12345"
+        end.returns(installer)
+        cmd
+      end
+
+      it "will not also pass license_id as an install command option" do
+        # mixlib-install's PowerShell generator emits "-license_id <value>" from
+        # the top-level option and then appends every install_command_options
+        # key. Passing it in both places produced "-license_id" twice, which
+        # PowerShell rejects with ParameterAlreadyBound.
+        config[:chef_license_key] = "test-license-key-12345"
+
+        Mixlib::Install.expects(:new).with do |opts|
+          _(opts[:install_command_options].key?(:license_id)).must_equal false
         end.returns(installer)
         cmd
       end

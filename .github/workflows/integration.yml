@@ -35,6 +35,8 @@ jobs:
           bundle config set --local with 'integration'
           bundle install
       - name: Verify Dokken
+        env:
+          CHEF_LICENSE_KEY: ${{ secrets.CHEF_LICENSE_KEY }}
         run: bundle exec kitchen verify
   # Commenting out for now until we can stabilize Vagrant on GH Actions runners
   # vagrant:
@@ -105,6 +107,8 @@ jobs:
           sudo createhomedir -c -u ${{ env.machine_user }}
           echo "${{ env.machine_user }} ALL=(ALL) NOPASSWD:ALL" | sudo tee -a /etc/sudoers
       - name: Verify macOS
+        env:
+          CHEF_LICENSE_KEY: ${{ secrets.CHEF_LICENSE_KEY }}
         run: bundle exec kitchen verify ${{ matrix.platform }}
 
   windows:
@@ -136,6 +140,8 @@ jobs:
           net user /add ${{ env.machine_user }} ${{ env.machine_pass }}
           net localgroup administrators ${{ env.machine_user }} /add
       - name: Verify Windows
+        env:
+          CHEF_LICENSE_KEY: ${{ secrets.CHEF_LICENSE_KEY }}
         run: bundle exec kitchen verify ${{ matrix.platform }}
 
   linux:
@@ -167,6 +173,8 @@ jobs:
           echo "${{ env.machine_user }}:${{ env.machine_pass }}" | sudo chpasswd
           echo "${{ env.machine_user }} ALL=(ALL) NOPASSWD:ALL" | sudo tee -a /etc/sudoers
       - name: Verify Linux
+        env:
+          CHEF_LICENSE_KEY: ${{ secrets.CHEF_LICENSE_KEY }}
         run: |
           bundle exec kitchen verify ${{ matrix.platform }}
 
@@ -232,4 +240,6 @@ jobs:
           net user /add ${{ env.machine_user }} ${{ env.machine_pass }}
           net localgroup administrators ${{ env.machine_user }} /add
       - name: Verify Windows FIPS SSH
+        env:
+          CHEF_LICENSE_KEY: ${{ secrets.CHEF_LICENSE_KEY }}
         run: bundle exec kitchen verify ${{ matrix.platform }}
