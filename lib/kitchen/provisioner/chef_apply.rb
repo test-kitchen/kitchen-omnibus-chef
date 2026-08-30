@@ -110,13 +110,14 @@ module Kitchen
       #
       # @return [void]
       def create_sandbox
+        # Deliberately not `super`: ChefBase#create_sandbox stages the full
+        # cookbook/data bag/role tree, which chef-apply has no use for.
         @sandbox_path = Dir.mktmpdir("#{instance.name}-sandbox-")
         File.chmod(0755, sandbox_path)
         info("Preparing files for transfer")
         debug("Creating local sandbox in #{sandbox_path}")
 
-        prepare_json
-        prepare(:apply)
+        Chef::CommonSandbox.new(config, sandbox_path, instance).populate_for_apply
       end
 
       # Shell code that prepares the apply directory on the instance.

@@ -18,6 +18,7 @@
 require_relative "../../spec_helper"
 
 require "kitchen"
+require "json"
 require "kitchen/provisioner/chef_apply"
 
 describe Kitchen::Provisioner::ChefApply do
@@ -87,14 +88,60 @@ describe Kitchen::Provisioner::ChefApply do
     before do
       @root = Dir.mktmpdir
       config[:kitchen_root] = @root
+      config[:test_base_path] = @root
     end
 
     after do
       FileUtils.remove_entry(@root)
       begin
         provisioner.cleanup_sandbox
-      rescue # rubocop:disable Lint/HandleExceptions
+      rescue Errno::ENOENT, Kitchen::ClientError
+        # sandbox was never created
       end
+    end
+
+    def sandbox_path(path)
+      Pathname.new(provisioner.sandbox_path).join(path)
+    end
+
+    it "creates a sandbox directory" do
+      provisioner.create_sandbox
+
+      _(File.directory?(provisioner.sandbox_path)).must_equal true
+    end
+
+    it "logs a message on info" do
+      provisioner.create_sandbox
+
+      _(logged_output.string).must_match info_line("Preparing files for transfer")
+    end
+
+    it "creates a dna.json with the run list and attributes" do
+      config[:run_list] = %w{recipe1 recipe2}
+      config[:attributes] = { "chef" => "apply" }
+      provisioner.create_sandbox
+
+      _(sandbox_path("dna.json").file?).must_equal true
+      _(JSON.parse(IO.read(sandbox_path("dna.json")))).must_equal(
+        "chef" => "apply", "run_list" => %w{recipe1 recipe2}
+      )
+    end
+
+    it "copies the apply directory into the sandbox" do
+      FileUtils.mkdir_p("#{@root}/apply")
+      File.open("#{@root}/apply/recipe1.rb", "wb") do |file|
+        file.write("log 'hello'")
+      end
+      provisioner.create_sandbox
+
+      _(sandbox_path("apply/recipe1.rb").file?).must_equal true
+      _(IO.read(sandbox_path("apply/recipe1.rb"))).must_equal "log 'hello'"
+    end
+
+    it "does not stage cookbooks, data bags, or roles" do
+      provisioner.create_sandbox
+
+      _(Dir.children(provisioner.sandbox_path).sort).must_equal %w{dna.json}
     end
   end
 
@@ -157,4 +204,9 @@ describe Kitchen::Provisioner::ChefApply do
     r = "^\s*#{r}$" if line == :whole_line
     Regexp.new(r)
   end
+
+  def info_line(msg)
+    /^I, .* : #{Regexp.escape(msg)}$/
+  end
+
 end

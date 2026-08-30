@@ -59,6 +59,17 @@ module Kitchen
           )
         end
 
+        # Populate the sandbox with only what chef-apply needs.
+        #
+        # chef-apply runs individual recipes, so cookbooks, data bags,
+        # environments, roles, clients, and the encrypted data bag secret are
+        # all skipped -- only the node JSON and the recipes to apply are
+        # staged.
+        def populate_for_apply
+          prepare_json
+          prepare(:apply)
+        end
+
         private
 
         # @return [Hash] configuration hash
