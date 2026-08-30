@@ -20,6 +20,6 @@ module Kitchen
   # Test Kitchen's provisioner plugins.
   module Provisioner
     # The version of the kitchen-omnibus-chef gem.
-    OMNIBUS_CHEF_VERSION = "1.1.0".freeze
+    OMNIBUS_CHEF_VERSION = "1.1.1".freeze
   end
 end

@@ -12,6 +12,13 @@
 * Docs: document every provisioner option and split contributor docs ([#24](https://github.com/test-kitchen/kitchen-omnibus-chef/pull/24)) ([2a9bf77](https://github.com/test-kitchen/kitchen-omnibus-chef/commit/2a9bf77))
 * Remove dependabot config in favor of renovate ([#25](https://github.com/test-kitchen/kitchen-omnibus-chef/pull/25)) ([eea60b0](https://github.com/test-kitchen/kitchen-omnibus-chef/commit/eea60b0))
 
+## [1.1.1](https://github.com/test-kitchen/kitchen-omnibus-chef/compare/v1.1.0...v1.1.1) (2026-08-30)
+
+
+### Bug Fixes
+
+* repair chef_apply, which raised NameError on every converge ([#30](https://github.com/test-kitchen/kitchen-omnibus-chef/issues/30)) ([928b444](https://github.com/test-kitchen/kitchen-omnibus-chef/commit/928b444c82a14c5bebfa5b4ac1da5b6164f32a7f))
+
 ## [1.1.0](https://github.com/test-kitchen/kitchen-omnibus-chef/compare/v1.0.2...v1.1.0) (2026-01-27)
 
 ### Features
