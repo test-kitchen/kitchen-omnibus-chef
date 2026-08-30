@@ -40,7 +40,11 @@ module Kitchen
           @instance = instance
         end
 
-        # Populate the sandbox.
+        # Populates the sandbox with everything a full Chef Infra run needs:
+        # the node JSON, a cache directory, the resolved cookbooks, and each
+        # optional component directory that is configured.
+        #
+        # @return [void]
         def populate
           prepare_json
           prepare_cache
@@ -65,6 +69,8 @@ module Kitchen
         # environments, roles, clients, and the encrypted data bag secret are
         # all skipped -- only the node JSON and the recipes to apply are
         # staged.
+        #
+        # @return [void]
         def populate_for_apply
           prepare_json
           prepare(:apply)
@@ -84,7 +90,11 @@ module Kitchen
         # @api private
         attr_reader :sandbox_path
 
-        # @return [String] name of the policy_group, nil results in "local"
+        # Vestigial reader: no `@policy_group` instance variable is ever
+        # assigned in this class, so this always returns nil. The policy group
+        # that is actually used is read from `config[:policy_group]`.
+        #
+        # @return [nil] always nil
         # @api private
         attr_reader :policy_group
 
@@ -121,8 +131,10 @@ module Kitchen
           File.join(config[:kitchen_root], "cookbooks")
         end
 
-        # Copies a cookbooks/ directory into the sandbox path.
+        # Copies a cookbooks/ directory into the sandbox path, along with
+        # site-cookbooks/ and the current project when those exist.
         #
+        # @return [void]
         # @api private
         def cp_cookbooks
           info("Preparing cookbooks from project directory")
@@ -137,6 +149,7 @@ module Kitchen
 
         # Copies a site-cookbooks/ directory into the sandbox path.
         #
+        # @return [void]
         # @api private
         def cp_site_cookbooks
           info("Preparing site-cookbooks from project directory")
@@ -147,8 +160,10 @@ module Kitchen
         end
 
         # Copies the current project, assumed to be a Chef cookbook into the
-        # sandbox path.
+        # sandbox path, under the cookbook name declared in its metadata.rb.
         #
+        # @return [void]
+        # @raise [Kitchen::UserError] if metadata.rb does not declare a `name`
         # @api private
         def cp_this_cookbook
           info("Preparing current project directory as a cookbook")
@@ -166,8 +181,10 @@ module Kitchen
           FileUtils.cp_r(glob, cb_path)
         end
 
-        # Removes all non-cookbook files in the sandbox path.
+        # Removes all non-cookbook files in the sandbox path, then prunes the
+        # directories that were left empty.
         #
+        # @return [void]
         # @api private
         def filter_only_cookbook_files
           info("Removing non-cookbook files before transfer")
@@ -183,8 +200,11 @@ module Kitchen
           instance ? instance.logger : Kitchen.logger
         end
 
-        # Creates a minimal, no-op cookbook in the sandbox path.
+        # Creates a minimal, no-op cookbook in the sandbox path, named after the
+        # kitchen root directory, so a run with nothing to converge still has a
+        # valid cookbook path.
         #
+        # @return [void]
         # @api private
         def make_fake_cookbook
           info("Policyfile, Berksfile, cookbooks/, or metadata.rb not found " \
@@ -227,6 +247,8 @@ module Kitchen
         #   which to pull the source path (default: `"#{component}_path"`)
         # @option opts [String] :dest_name the destination file or directory
         #   basename in the sandbox path (default: `component.to_s`)
+        # @return [void] nothing is copied when the source path is not
+        #   configured
         # @api private
         def prepare(component, opts = {})
           opts = { type: :directory }.merge(opts)
@@ -251,6 +273,7 @@ module Kitchen
 
         # Prepares a cache directory for inclusion in the sandbox path.
         #
+        # @return [void]
         # @api private
         def prepare_cache
           FileUtils.mkdir_p(File.join(sandbox_path, "cache"))
@@ -258,6 +281,12 @@ module Kitchen
 
         # Prepares Chef cookbooks for inclusion in the sandbox path.
         #
+        # The first source that exists wins, in order: a Policyfile, a
+        # Berksfile, a cookbooks/ directory, the project's own metadata.rb, and
+        # finally a generated no-op cookbook. Non-cookbook files are stripped
+        # afterwards either way.
+        #
+        # @return [void]
         # @api private
         # rubocop:disable Metrics/PerceivedComplexity, Metrics/CyclomaticComplexity
         def prepare_cookbooks
@@ -279,6 +308,7 @@ module Kitchen
         # Prepares a Chef JSON file, sometimes called a dna.json or
         # first-boot.json, for inclusion in the sandbox path.
         #
+        # @return [void]
         # @api private
         def prepare_json
           dna = if File.exist?(policyfile)
@@ -301,6 +331,8 @@ module Kitchen
         # instances would otherwise compile into the same lockfile at once.
         #
         # @return [Hash] node attributes including +policy_name+ and +policy_group+
+        # @raise [Kitchen::ShellOut::ShellCommandFailed] if compilation fails
+        # @api private
         def update_dna_for_policyfile
           policy = Chef::Policyfile.new(
             policyfile, sandbox_path,
@@ -319,6 +351,7 @@ module Kitchen
 
         # Performs a Policyfile cookbook resolution inside a common mutex.
         #
+        # @return [void]
         # @api private
         def resolve_with_policyfile
           Kitchen.mutex.synchronize do
@@ -334,6 +367,7 @@ module Kitchen
 
         # Performs a Berkshelf cookbook resolution inside a common mutex.
         #
+        # @return [void]
         # @api private
         def resolve_with_berkshelf
           Kitchen.mutex.synchronize do
@@ -357,8 +391,11 @@ module Kitchen
           File.join(sandbox_path, "cookbooks")
         end
 
-        # @return [String] an absolute path to a site cookbooks directory in the
-        #   sandbox path
+        # Site cookbooks are flattened into the sandbox's cookbooks/ directory,
+        # so this deliberately returns the same path as {#tmpbooks_dir}.
+        #
+        # @return [String] an absolute path to the directory site-cookbooks are
+        #   copied into within the sandbox path
         # @api private
         def tmpsitebooks_dir
           File.join(sandbox_path, "cookbooks")

@@ -101,6 +101,8 @@ module Kitchen
 
       # Returns an Array of command line arguments for the chef client.
       #
+      # @param solo_rb_filename [String] basename of the solo.rb to read,
+      #   relative to the instance's root path
       # @return [Array<String>] an array of command line arguments
       # @api private
       def chef_args(solo_rb_filename)
