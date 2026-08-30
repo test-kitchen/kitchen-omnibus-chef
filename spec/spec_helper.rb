@@ -20,7 +20,6 @@ gem "minitest"
 require "fakefs/safe"
 require "minitest/autorun"
 require "mocha/minitest"
-require "tempfile"
 
 # Require the base test-kitchen gem which provides Kitchen module infrastructure
 begin
@@ -30,62 +29,32 @@ rescue LoadError
   require "kitchen"
 end
 
-# Hack to sort results in `Dir.entries` only within the yielded block, to limit
-# the "behavior pollution" to other code. This was needed for Net::SCP, as
-# recursive directory upload doesn't sort the file and directory upload
-# candidates which leads to different results based on the underlying
-# filesystem (i.e. lexically sorted, inode insertion, mtime/atime, total
-# randomness, etc.)
-#
-# See: https://github.com/net-ssh/net-scp/blob/a24948/lib/net/scp/upload.rb#L52
-
-$_sort_dir_entries = false
-Dir.singleton_class.prepend(Module.new do
-  def entries(*args)
-    super.tap do |rv|
-      rv.sort! if $_sort_dir_entries
-    end
-  end
-end)
-
-def with_sorted_dir_entries(&block)
-  old_sort_dir_entries = $_sort_dir_entries
-  $_sort_dir_entries = true
-  yield
-ensure
-  $_sort_dir_entries = old_sort_dir_entries
+# These specs never install anything or talk to a Chef Infra Server.
+# Everything this gem does is turn configuration into shell commands, sandbox
+# directories, and client.rb/solo.rb files, so all of it can be exercised as
+# pure string and filesystem work. Anything that genuinely needs a converge
+# belongs in the Test Kitchen integration suites -- see CONTRIBUTING.md.
+Mocha.configure do |config|
+  # Fail if an example stubs a method the real object does not have. Without
+  # this, a rename in lib/ leaves the specs stubbing a method that no longer
+  # exists and passing while the provisioner is broken.
+  config.stubbing_non_existent_method = :prevent
 end
 
-def with_fake_fs
-  FakeFS.activate!
-  FileUtils.mkdir_p("/tmp")
-  yield
-  FakeFS.deactivate!
-  FakeFS::FileSystem.clear
-end
-
+# @return [Boolean] whether the suite is running on Windows
 def running_tests_on_windows?
   ENV["OS"] == "Windows_NT"
 end
 
+# Roots an absolute path on the current drive so path assertions work on
+# Windows, where "/rooty" alone is not absolute.
+#
+# @param root_path [String] a Unix-style absolute path
+# @return [String] the same path, drive-qualified on Windows
 def os_safe_root_path(root_path)
   if running_tests_on_windows?
     File.join(Dir.pwd[0..1], root_path).to_s
-    # File.join(ENV["SystemDrive"], root_path).to_s
   else
     root_path
   end
-end
-
-def padded_octal_string(integer)
-  integer.to_s(8).rjust(4, "0")
-end
-
-def os_safe_temp_path(temp_path)
-  if running_tests_on_windows? && ENV["USERNAME"].length > 8
-    short_name = ENV["USERNAME"].upcase[0..5] + "~1"
-    updated_path = temp_path.sub(ENV["USERNAME"], short_name)
-    return updated_path unless updated_path.nil?
-  end
-  temp_path
 end

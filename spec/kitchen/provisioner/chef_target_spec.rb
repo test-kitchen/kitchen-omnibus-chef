@@ -127,5 +127,71 @@ describe Kitchen::Provisioner::ChefTarget do
       provisioner.stubs(:`).returns("Chef Infra Client: 18.2.5\n")
       _ { provisioner.check_local_chef_client }.must_raise Kitchen::Provisioner::ChefTarget::ChefVersionTooLow
     end
+
+    it "raises ChefClientNotFound when chef-client is not on PATH" do
+      provisioner.stubs(:`).raises(Errno::ENOENT, "No such file or directory - chef-client")
+
+      _ { provisioner.check_local_chef_client }
+        .must_raise Kitchen::Provisioner::ChefTarget::ChefClientNotFound
+    end
+  end
+
+  describe "#kitchen_basepath" do
+    it "reads kitchen_root from the driver, which is where Test Kitchen sets it" do
+      driver = stub(config: { kitchen_root: "/somewhere/else" })
+      instance.stubs(:driver).returns(driver)
+
+      _(provisioner.kitchen_basepath).must_equal "/somewhere/else"
+    end
+  end
+
+  # Target Mode drives the instance over Train from the workstation, so the
+  # transport credentials have to be written out to a file and handed to
+  # chef-client. None of that was covered.
+  describe "#chef_args" do
+    let(:root) { Dir.mktmpdir }
+
+    let(:connection) do
+      stub(train_uri: "dummy://coolbeans", credentials_file: "[coolbeans]\nbackend = dummy\n")
+    end
+
+    before do
+      FileUtils.mkdir_p(File.join(root, ".kitchen"))
+      instance.stubs(:remote_exec).returns(connection)
+      instance.stubs(:driver).returns(stub(config: { kitchen_root: root }))
+      provisioner.stubs(:check_local_chef_client).returns(true)
+      config[:root_path] = "/rooty"
+    end
+
+    after { FileUtils.remove_entry(root) }
+
+    it "appends the target and credentials flags to the client args" do
+      args = provisioner.chef_args("client.rb")
+
+      _(args).must_include "--target coolbeans"
+      _(args).must_include "--credentials #{File.join(root, ".kitchen", "coolbeans.ini")}"
+    end
+
+    it "keeps the arguments inherited from chef_infra" do
+      args = provisioner.chef_args("client.rb")
+
+      _(args).must_include "--config /rooty/client.rb"
+      _(args).must_include "--force-formatter"
+    end
+
+    it "writes the transport credentials out for chef-client to read" do
+      provisioner.chef_args("client.rb")
+
+      credentials = File.join(root, ".kitchen", "coolbeans.ini")
+      _(File.file?(credentials)).must_equal true
+      _(File.read(credentials)).must_equal "[coolbeans]\nbackend = dummy\n"
+    end
+
+    it "rejects a transport that cannot produce a Train URI" do
+      instance.stubs(:remote_exec).returns(stub(credentials_file: ""))
+
+      _ { provisioner.chef_args("client.rb") }
+        .must_raise Kitchen::Provisioner::ChefTarget::RequireTrainTransport
+    end
   end
 end
