@@ -306,6 +306,22 @@ describe Kitchen::Provisioner::ChefInfra do
         _(file).must_include %{client_key "lol"}
       end
 
+      # `named_run_list` used to default to an empty Hash, which is truthy, so
+      # every generated client.rb picked up a stray `named_run_list {}` line.
+      it "omits named_run_list when it is not configured" do
+        provisioner.create_sandbox
+
+        _(provisioner[:named_run_list]).must_be_nil
+        _(file.grep(/named_run_list/)).must_equal []
+      end
+
+      it "writes named_run_list when it is configured" do
+        config[:named_run_list] = "deploy"
+        provisioner.create_sandbox
+
+        _(file).must_include %{named_run_list "deploy"}
+      end
+
       it " supports adding new configuration" do
         config[:client_rb] = {
           dark_secret: "golang",

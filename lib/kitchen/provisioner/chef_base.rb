@@ -37,7 +37,7 @@ end
 begin
   require "chef-config/config"
   require "chef-config/workstation_config_loader"
-rescue LoadError # rubocop:disable Lint/HandleExceptions
+rescue LoadError # rubocop:disable Lint/SuppressedException
   # This space left intentionally blank.
 end
 
@@ -244,7 +244,6 @@ module Kitchen
       # @return [String, nil] the name of the enterprise gem if available
       # @api private
       def self.enterprise_gem_available?
-        @enterprise_gem_checked ||= false
         return @enterprise_gem if @enterprise_gem_checked
 
         @enterprise_gem_checked = true
@@ -290,13 +289,17 @@ module Kitchen
         ChefConfig::Config.export_proxies if defined?(ChefConfig::Config.export_proxies)
       end
 
-      # Reports the driver's deprecated configuration during `kitchen doctor`.
+      # Reports this provisioner's deprecated configuration during
+      # `kitchen doctor`.
+      #
+      # Only options the user actually set are listed -- Test Kitchen populates
+      # +deprecated_config+ during +finalize_config!+ from the
+      # +deprecate_config_for+ declarations above.
       #
       # @param state [Hash] instance state
       # @return [void]
       def doctor(state)
-        deprecated_config = instance.driver.instance_variable_get(:@deprecated_config)
-        deprecated_config.each do |attr, msg|
+        deprecated_config.to_h.each do |attr, msg|
           info("**** #{attr} deprecated\n#{msg}")
         end
       end
@@ -468,7 +471,7 @@ module Kitchen
         if config[:chef_omnibus_install_options].nil?
           config[:chef_omnibus_install_options] = cache_dir_option
         elsif config[:chef_omnibus_install_options].match(/\s*#{omnibus_dir_option}\s*/).nil?
-          config[:chef_omnibus_install_options] << " " << cache_dir_option
+          config[:chef_omnibus_install_options] += " #{cache_dir_option}"
         end
       end
 
