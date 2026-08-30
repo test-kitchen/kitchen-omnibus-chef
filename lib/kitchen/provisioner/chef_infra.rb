@@ -116,7 +116,8 @@ module Kitchen
       # Adds optional flags to a chef-client command, depending on
       # configuration data. Note that this method mutates the incoming Array.
       #
-      # @param args [Array<String>] array of flags
+      # @param args [Array<String>] array of flags, appended to in place
+      # @return [void]
       # @api private
       # rubocop:disable Metrics/CyclomaticComplexity
       def add_optional_chef_client_args!(args)
@@ -151,6 +152,8 @@ module Kitchen
 
       # Returns an Array of command line arguments for the chef client.
       #
+      # @param client_rb_filename [String] basename of the client.rb to read,
+      #   relative to the instance's root path
       # @return [Array<String>] an array of command line arguments
       # @api private
       def chef_args(client_rb_filename)
@@ -186,6 +189,7 @@ module Kitchen
 
       # Writes a fake (but valid) validation.pem into the sandbox directory.
       #
+      # @return [void]
       # @api private
       def prepare_validation_pem
         info("Preparing validation.pem")

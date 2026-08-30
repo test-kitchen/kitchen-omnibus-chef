@@ -39,8 +39,14 @@ module Kitchen
         # @param policyfile [String] path to a Policyfile
         # @param path [String] path in which to vendor the resulting
         #   cookbooks
+        # @param license [String, nil] a Chef license acceptance value passed
+        #   through to the CLI as `--chef-license`; nil or empty passes nothing
         # @param logger [Kitchen::Logger] a logger to use for output, defaults
         #   to `Kitchen.logger`
+        # @param always_update [Boolean] when true, run `chef update` after
+        #   `chef install` so the policy lock is refreshed
+        # @param policy_group [String, nil] the policy group to export; nil
+        #   omits `--policy_group`, which leaves the CLI on its "local" default
         def initialize(policyfile, path, license: nil, logger: Kitchen.logger, always_update: false, policy_group: nil)
           @policyfile    = policyfile
           @path          = path
@@ -52,14 +58,24 @@ module Kitchen
 
         # Loads the library code required to use the resolver.
         #
+        # Deliberately a no-op: this resolver shells out to the `chef-cli`
+        # executable and so has no library to require. It exists to match
+        # {Berkshelf.load!}, which the provisioners call interchangeably.
+        #
         # @param logger [Kitchen::Logger] a logger to use for output, defaults
         #   to `Kitchen.logger`
+        # @return [void]
         def self.load!(logger: Kitchen.logger)
           # intentionally left blank
         end
 
         # Performs the cookbook resolution and vendors the resulting cookbooks
-        # in the desired path.
+        # in the desired path, by shelling out to `chef export`.
+        #
+        # @return [String] the standard output of the `chef export` run
+        # @raise [Kitchen::UserError] if no `chef` or `chef-cli` executable is
+        #   on the PATH
+        # @raise [Kitchen::ShellOut::ShellCommandFailed] if the export fails
         def resolve
           if policy_group
             info("Exporting cookbook dependencies from Policyfile #{path} with policy_group #{policy_group} using `#{cli_path} export`...")
@@ -71,7 +87,13 @@ module Kitchen
         end
 
         # Runs `chef install` to determine the correct cookbook set and
-        # generate the policyfile lock.
+        # generate the policyfile lock, followed by `chef update` when
+        # {#always_update} is set.
+        #
+        # @return [void]
+        # @raise [Kitchen::UserError] if no `chef` or `chef-cli` executable is
+        #   on the PATH
+        # @raise [Kitchen::ShellOut::ShellCommandFailed] if either run fails
         def compile
           if File.exist?(lockfile)
             info("Installing cookbooks for Policyfile #{policyfile} using `#{cli_path} install`")
@@ -153,6 +175,10 @@ module Kitchen
           @cli_path ||= which("chef-cli") || which("chef") || no_cli_found_error
         end
 
+        # Logs an explanation and aborts because neither CLI could be found.
+        #
+        # @return [void] never returns normally
+        # @raise [Kitchen::UserError] always
         # @api private
         def no_cli_found_error
           @logger.fatal("The `chef` or `chef-cli` executables cannot be found in your " \
@@ -162,7 +188,12 @@ module Kitchen
           raise UserError, "Could not find the chef or chef-cli executables in your PATH."
         end
 
-        # Return `"--chef-license #{license}"` when `license` is not nil or empty and the empty string otherwise.
+        # Builds the `--chef-license` flag for a CLI invocation.
+        #
+        # @param license [String, nil] the license acceptance value
+        # @return [String] `"--chef-license <value>"`, or the empty string when
+        #   `license` is nil or empty
+        # @api private
         def chef_license(license)
           (license.nil? || license.empty?) ? "" : "--chef-license #{license}"
         end
