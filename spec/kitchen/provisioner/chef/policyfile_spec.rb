@@ -375,4 +375,88 @@ describe Kitchen::Provisioner::Chef::Policyfile do
     end
   end
   # rubocop:enable Layout/LineLength
+
+  # These two options change the commands that actually get run, and neither
+  # was reachable from the cases above: `always_update_cookbooks` defaults to
+  # true, so the extra `chef update` is the normal path for every Policyfile
+  # user, and `policy_group` switches `resolve` onto a different export.
+  describe "with options that change the command" do
+    let(:os) { "linux-gnu" }
+    let(:policyfile) { "/home/user/cookbook/Policyfile.rb" }
+    let(:path) { "/tmp/kitchen/cookbooks" }
+    let(:license) { "accept" }
+
+    let(:described_object) do
+      Kitchen::Provisioner::Chef::Policyfile.new(
+        policyfile, path,
+        license: license,
+        logger: null_logger,
+        always_update: always_update,
+        policy_group: policy_group
+      )
+    end
+
+    let(:always_update) { false }
+    let(:policy_group)  { nil }
+
+    before do
+      described_object.stubs(:which).with("chef-cli").returns(false)
+      described_object.stubs(:which).with("chef").returns("chef")
+    end
+
+    describe "#compile with always_update" do
+      let(:always_update) { true }
+
+      it "runs `chef update` after `chef install`" do
+        seq = sequence("compile")
+        described_object.expects(:run_command)
+          .with("chef install /home/user/cookbook/Policyfile.rb --chef-license accept")
+          .in_sequence(seq)
+        described_object.expects(:run_command)
+          .with("chef update /home/user/cookbook/Policyfile.rb --chef-license accept")
+          .in_sequence(seq)
+
+        described_object.compile
+      end
+    end
+
+    describe "#compile without always_update" do
+      it "runs `chef install` only" do
+        described_object.expects(:run_command)
+          .with("chef install /home/user/cookbook/Policyfile.rb --chef-license accept")
+          .once
+
+        described_object.compile
+      end
+    end
+
+    describe "#resolve with a policy_group" do
+      let(:policy_group) { "staging" }
+
+      it "exports the named policy group" do
+        described_object.expects(:run_command)
+          .with("chef export /home/user/cookbook/Policyfile.rb /tmp/kitchen/cookbooks --policy_group staging --force --chef-license accept")
+
+        described_object.resolve
+      end
+    end
+
+    describe "#resolve without a policy_group" do
+      it "exports without --policy_group" do
+        described_object.expects(:run_command)
+          .with("chef export /home/user/cookbook/Policyfile.rb /tmp/kitchen/cookbooks --force --chef-license accept")
+
+        described_object.resolve
+      end
+    end
+  end
+
+  describe "#lockfile" do
+    let(:policyfile) { "/home/user/cookbook/Policyfile.rb" }
+    let(:path)       { "/tmp/kitchen/cookbooks" }
+
+    it "swaps the .rb suffix for .lock.json" do
+      _(described_object.lockfile).must_equal "/home/user/cookbook/Policyfile.lock.json"
+    end
+  end
 end

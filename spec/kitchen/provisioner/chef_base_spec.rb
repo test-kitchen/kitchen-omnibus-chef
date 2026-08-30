@@ -612,6 +612,47 @@ describe Kitchen::Provisioner::ChefBase do
       end
     end
 
+    # Every other "for product" example asserts on the options hash handed to
+    # Mixlib::Install and stubs install_command out to nil, so the bourne
+    # wrapper that actually lands on the instance was never looked at.
+    describe "for product on a bourne shell" do
+      let(:cmd) { provisioner.install_command }
+
+      before do
+        config[:product_name] = "my_product"
+        config[:root_path] = "/rooty"
+        Mixlib::Install.stubs(:new).returns(installer)
+        installer.stubs(:root).returns("/opt/chef")
+        installer.stubs(:install_command).returns("echo installing")
+      end
+
+      it "writes the installer to a file under root_path and runs it with sudo" do
+        _(cmd).must_include "mkdir -p /rooty"
+        _(cmd).must_include %{cat > /rooty/chef-installer.sh <<"EOL"}
+        _(cmd).must_include "echo installing"
+        _(cmd).must_include "chmod +x /rooty/chef-installer.sh"
+        _(cmd).must_include "sudo -E /rooty/chef-installer.sh"
+      end
+
+      it "aborts if root_path cannot be created" do
+        lines = cmd.lines.map(&:chomp)
+
+        _(lines).must_include "if [ $? -ne 0 ]; then"
+        _(lines).must_include "  exit 1"
+      end
+
+      it "heredocs the installer before making it executable" do
+        _(cmd.index("EOL")).must_be :<, cmd.index("chmod +x")
+      end
+
+      it "does not use a temp file on powershell" do
+        platform.stubs(:shell_type).returns("powershell")
+
+        _(cmd).wont_include "chef-installer.sh"
+        _(cmd).must_include "echo installing"
+      end
+    end
+
     describe "when install_strategy is skipped" do
       before do
         config[:product_name] = "my_product"
@@ -955,6 +996,28 @@ describe Kitchen::Provisioner::ChefBase do
       it "does not call the license-acceptance flow" do
         provisioner.check_license
         _(config[:chef_license]).must_be_nil
+      end
+    end
+
+    # The banner is the only notice most users get that omnitruck downloads are
+    # going away, and download_url is what suppresses it -- someone pointed at
+    # their own mirror is not affected and should not be nagged.
+    describe "the deprecation banner" do
+      let(:acceptor) { stub(license_required?: false) }
+
+      it "warns when no download_url is set" do
+        provisioner.check_license
+
+        _(logged_output.string).must_match(/kitchen-omnibus-chef is deprecated/)
+        _(logged_output.string).must_match(/Omnitruck downloads are being shutdown/)
+      end
+
+      it "stays quiet when download_url is set" do
+        config[:download_url] = "https://mirror.example.com/chef.deb"
+
+        provisioner.check_license
+
+        _(logged_output.string).wont_match(/kitchen-omnibus-chef is deprecated/)
       end
     end
 
@@ -1411,19 +1474,44 @@ describe Kitchen::Provisioner::ChefBase do
             end
           end
           describe "when the policyfile lock doesn't exist" do
+            let(:policyfile_path)      { "#{kitchen_root}/foo-policy.rb" }
+            let(:policyfile_lock_path) { "#{kitchen_root}/foo-policy.lock.json" }
+
+            # Stands in for `chef install`. On a fresh checkout the lock only
+            # exists because compile ran and wrote it, so a plain stub would
+            # not tell us whether the lock is read after compiling or before.
+            let(:resolver) do
+              lock = policyfile_lock_path
+              Object.new.tap do |fake|
+                fake.define_singleton_method(:lockfile) { lock }
+                fake.define_singleton_method(:compiled?) { !!@compiled }
+                fake.define_singleton_method(:resolved?) { !!@resolved }
+                fake.define_singleton_method(:compile) do
+                  @compiled = true
+                  File.write(lock, %({"name": "wat"}))
+                end
+                fake.define_singleton_method(:resolve) { @resolved = true }
+              end
+            end
+
             before do
-              File.open("#{kitchen_root}/Policyfile.rb", "wb") do |file|
+              File.open(policyfile_path, "wb") do |file|
                 file.write(<<~POLICYFILE)
                   name 'wat'
                   run_list 'wat'
                   cookbook 'wat'
                 POLICYFILE
               end
+            end
 
-              it "runs `chef install` to generate the lock" do
-                resolver.expects(:compile)
-                provisioner.create_sandbox
-              end
+            it "runs `chef install` to generate the lock, then reads it" do
+              provisioner.create_sandbox
+
+              _(resolver.compiled?).must_equal true
+              _(resolver.resolved?).must_equal true
+
+              dna_json_file = File.join(provisioner.sandbox_path, "dna.json")
+              _(JSON.parse(File.read(dna_json_file))["policy_name"]).must_equal "wat"
             end
           end
         end
