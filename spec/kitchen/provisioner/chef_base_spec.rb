@@ -221,6 +221,44 @@ describe Kitchen::Provisioner::ChefBase do
     end
   end
 
+  describe "#doctor" do
+    # `kitchen doctor` is the only place a user is told that the legacy omnibus
+    # attributes are on their way out, so it has to report *this* provisioner's
+    # deprecations. It used to reach into the driver's instead, which meant the
+    # deprecate_config_for declarations in this class were never surfaced.
+    it "reports the provisioner's own deprecated attributes" do
+      provisioner.instance_variable_set(
+        :@deprecated_config, { chef_omnibus_url: "use product_name instead" }
+      )
+
+      provisioner.doctor({})
+
+      _(logged_output.string).must_match(/chef_omnibus_url deprecated/)
+      _(logged_output.string).must_match(/use product_name instead/)
+    end
+
+    it "does not report the driver's deprecated attributes" do
+      provisioner.instance_variable_set(:@deprecated_config, {})
+      driver.instance_variable_set(
+        :@deprecated_config, { a_driver_attribute: "not ours to report" }
+      )
+
+      provisioner.doctor({})
+
+      _(logged_output.string).wont_match(/deprecated/)
+    end
+
+    # Test Kitchen only populates @deprecated_config for the first plugin in a
+    # run that has any, so every later instance sees nil.
+    it "says nothing when no deprecations were recorded" do
+      provisioner.instance_variable_set(:@deprecated_config, nil)
+
+      provisioner.doctor({})
+
+      _(logged_output.string).wont_match(/deprecated/)
+    end
+  end
+
   describe "#install_command" do
     before do
       platform.stubs(:shell_type).returns("bourne")
@@ -427,6 +465,26 @@ describe Kitchen::Provisioner::ChefBase do
           Mixlib::Install::ScriptGenerator.expects(:new)
             .with(default_version, false, install_opts).returns(installer)
           cmd
+        end
+
+        it "appends the cache directory without mutating a frozen options string" do
+          config[:chef_omnibus_install_options] = "-P cool -v 123".freeze
+          install_opts[:install_flags] = "-P cool -v 123 -d /tmp/custom/place"
+          install_opts[:project] = "cool"
+
+          Mixlib::Install::ScriptGenerator.expects(:new)
+            .with(default_version, false, install_opts).returns(installer)
+          cmd
+        end
+
+        it "does not mutate the caller's options string in place" do
+          options = +"-P cool -v 123"
+          config[:chef_omnibus_install_options] = options
+
+          Mixlib::Install::ScriptGenerator.stubs(:new).returns(installer)
+          cmd
+
+          _(options).must_equal "-P cool -v 123"
         end
       end
     end
@@ -1610,6 +1668,49 @@ describe Kitchen::Provisioner::ChefBase do
 
             provisioner.create_sandbox
           end
+        end
+      end
+
+      # `berksfile` is the older spelling of `berksfile_path`. ChefBase has
+      # always honoured it when deciding whether to load Berkshelf, so the
+      # sandbox has to resolve against the same file or the run silently ends
+      # up with no cookbooks at all.
+      describe "with the legacy :berksfile alias" do
+        let(:resolver) { stub(resolve: true) }
+
+        let(:config) do
+          {
+            berksfile: "aliased-berks.rb",
+            test_base_path: "/basist",
+            kitchen_root: "/rooty",
+          }
+        end
+
+        before do
+          File.open("#{kitchen_root}/aliased-berks.rb", "wb") do |file|
+            file.write("cookbook 'wat'")
+          end
+        end
+
+        it "logs on debug that Berkshelf is loading" do
+          Kitchen::Provisioner::Chef::Berkshelf.stubs(:load!)
+          Kitchen::Provisioner::Chef::Berkshelf.stubs(:new).returns(resolver)
+          provisioner
+
+          _(logged_output.string).must_match debug_line(
+            "Berksfile found at #{kitchen_root}/aliased-berks.rb, using Berkshelf to resolve cookbook dependencies"
+          )
+        end
+
+        it "resolves against the aliased Berksfile" do
+          Kitchen::Provisioner::Chef::Berkshelf.stubs(:load!)
+          Kitchen::Provisioner::Chef::Berkshelf
+            .expects(:new)
+            .with("#{kitchen_root}/aliased-berks.rb", instance_of(String), anything)
+            .returns(resolver)
+          resolver.expects(:resolve)
+
+          provisioner.create_sandbox
         end
       end
 

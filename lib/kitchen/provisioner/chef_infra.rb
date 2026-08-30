@@ -77,7 +77,7 @@ module Kitchen
       plugin_version Kitchen::VERSION
 
       default_config :client_rb, {}
-      default_config :named_run_list, {}
+      default_config :named_run_list, nil
       default_config :json_attributes, true
       default_config :chef_zero_host, nil
       default_config :chef_zero_port, 8889
@@ -166,24 +166,6 @@ module Kitchen
         args
       end
 
-      # Generates a string of shell environment variables needed for the
-      # chef-client-zero.rb shim script to properly function.
-      #
-      # @return [String] a shell script string
-      # @api private
-      def chef_client_zero_env
-        root = config[:root_path]
-        gem_home = gem_path = remote_path_join(root, "chef-client-zero-gems")
-        gem_cache = remote_path_join(gem_home, "cache")
-
-        [
-            shell_env_var("CHEF_REPO_PATH", root),
-            shell_env_var("GEM_HOME", gem_home),
-            shell_env_var("GEM_PATH", gem_path),
-            shell_env_var("GEM_CACHE", gem_cache),
-        ].join("\n").concat("\n")
-      end
-
       # Writes a fake (but valid) validation.pem into the sandbox directory.
       #
       # @api private
@@ -194,19 +176,6 @@ module Kitchen
         source = File.join(File.dirname(__FILE__),
           %w{.. .. .. support dummy-validation.pem})
         FileUtils.cp(source, File.join(sandbox_path, "validation.pem"))
-      end
-
-      # Returns the command that will run a backwards compatible shim script
-      # that approximates local mode in a modern chef-client run.
-      #
-      # @return [String] the command string
-      # @api private
-      def shim_command
-        ruby = remote_path_join(config[:ruby_bindir], "ruby")
-          .tap { |path| path.concat(".exe") if windows_os? }
-        shim = remote_path_join(config[:root_path], "chef-client-zero.rb")
-
-        "#{chef_client_zero_env}\n#{sudo(ruby)} #{shim}"
       end
 
       # This provisioner supports policyfiles, so override the default (which

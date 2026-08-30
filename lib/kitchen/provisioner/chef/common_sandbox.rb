@@ -73,10 +73,6 @@ module Kitchen
         # @api private
         attr_reader :sandbox_path
 
-        # @return [String] name of the policy_group, nil results in "local"
-        # @api private
-        attr_reader :policy_group
-
         # Generates a list of all files in the cookbooks directory in the
         # sandbox path.
         #
@@ -99,7 +95,7 @@ module Kitchen
         #   kitchen root
         # @api private
         def berksfile
-          basename = config[:berksfile_path] || "Berksfile"
+          basename = config[:berksfile_path] || config[:berksfile] || "Berksfile"
           File.expand_path(basename, config[:kitchen_root])
         end
 
@@ -291,18 +287,18 @@ module Kitchen
         #
         # @return [Hash] node attributes including +policy_name+ and +policy_group+
         def update_dna_for_policyfile
+          policy_group = config[:policy_group] || "local"
           policy = Chef::Policyfile.new(
             policyfile, sandbox_path,
             logger:,
             always_update: config[:always_update_cookbooks],
-            policy_group:,
+            policy_group: config[:policy_group],
             license: config[:chef_license]
           )
           Kitchen.mutex.synchronize do
             policy.compile
           end
           policy_name = JSON.parse(File.read(policy.lockfile))["name"]
-          policy_group = config[:policy_group] || "local"
           config[:attributes].merge(policy_name:, policy_group:)
         end
 
