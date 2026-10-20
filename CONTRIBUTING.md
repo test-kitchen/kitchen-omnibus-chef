@@ -7,7 +7,7 @@ requests, and pull requests are all welcome.
 > [README.md](README.md) for the recommended migration paths. Fixes are still
 > welcome, but new features are better directed at
 > [kitchen-chef-enterprise](https://github.com/chef/kitchen-chef-enterprise) or
-> [kitchen-cinc](https://gitlab.com/cinc-project/kitchen-cinc).
+> [kitchen-cinc](https://github.com/cinc-project/kitchen-cinc).
 
 ## Reporting issues
 

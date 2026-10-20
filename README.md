@@ -9,7 +9,7 @@
 ### Recommended Migration Paths
 
 - **For Chef customers**: Switch to [kitchen-chef-enterprise](https://github.com/chef/kitchen-chef-enterprise) (bundled in Chef Workstation 26.x+) for licensed download support
-- **For community users**: Switch to [kitchen-cinc](https://gitlab.com/cinc-project/kitchen-cinc) and use Cinc provisioners like `cinc_infra`
+- **For community users**: Switch to [kitchen-cinc](https://github.com/cinc-project/kitchen-cinc) and use Cinc provisioners like `cinc_infra`
 
 Please refer to the [Chef blog](https://www.chef.io/blog/decoding-the-change-progress-chef-is-moving-to-licensed-downloads) for the schedule of affected versions.
 
@@ -458,7 +458,7 @@ This gem is the Chef Infra Client provisioner, and the commands above assume
 If you are using [Cinc Workstation](https://cinc.sh/start/workstation/), or you
 are a community user affected by the licensed-download changes described in the
 [deprecation notice](#%EF%B8%8F-important-deprecation-notice), use
-[kitchen-cinc](https://gitlab.com/cinc-project/kitchen-cinc) instead. It provides
+[kitchen-cinc](https://github.com/cinc-project/kitchen-cinc) instead. It provides
 the same provisioners under `cinc_*` names, installing Cinc Client from the Cinc
 omnitruck API rather than Chef's:
 
